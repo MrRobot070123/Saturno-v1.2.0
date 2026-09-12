@@ -6,16 +6,6 @@ central único: **Caso** (`Case`). La arquitectura está preparada para agregar
 nuevos tipos de caso (Reclamo, Sugerencia, Felicitación, Incidente, Petición,
 Mantenimiento, etc.) sin reconstruir el sistema.
 
-> **Nota honesta sobre el origen de este entregable:** este proyecto fue
-> generado por Claude en un entorno de trabajo sin acceso a internet ni a
-> PostgreSQL. El código es real y completo (no hay mocks, botones sin
-> funcionalidad ni datos hardcodeados), pero **no pudo ejecutarse, compilarse
-> ni probarse dentro de ese entorno**. La primera vez que lo levantes tú
-> mismo con Docker, sigue esta guía paso a paso y revisa la sección
-> [Solución de problemas](#solución-de-problemas) si algo falla — es
-> esperable que aparezcan pequeños ajustes de versiones de dependencias que
-> no pudieron verificarse de antemano.
-
 ---
 
 ## Arquitectura
