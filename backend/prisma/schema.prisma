@@ -1,0 +1,417 @@
+// ============================================================================
+// SISTEMA HOTELERO DE GESTIÓN DE CASOS - Prisma Schema
+// ============================================================================
+// Decisiones de diseño relevantes:
+// - "Case" es la entidad central única (quejas/solicitudes = mismo modelo,
+//   diferenciados por CaseType). Añadir un nuevo tipo en el futuro (Reclamo,
+//   Sugerencia, Incidente, etc.) NO requiere migraciones estructurales:
+//   solo se agrega un valor al enum CaseType.
+// - Multi-hotel: toda entidad operativa cuelga de Hotel (hotelId), aunque
+//   hoy solo exista un hotel sembrado.
+// - Generación de número de caso: se usa una tabla CaseSequence con un
+//   contra por (hotelId, type, año) y una transacción con bloqueo
+//   (SELECT ... FOR UPDATE vía $queryRaw dentro de una transacción Prisma)
+//   para garantizar unicidad bajo concurrencia sin depender de "MAX(id)+1".
+// - Auditoría (CaseAudit / AuditLog) es append-only: no se exponen
+//   endpoints de UPDATE/DELETE sobre estas tablas a ningún rol.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// MULTI-HOTEL
+// ----------------------------------------------------------------------------
+
+model Hotel {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique // ej. "HTL-BAQ-01"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locations     Location[]
+  areas         Area[]
+  users         User[]
+  cases         Case[]
+  caseSequences CaseSequence[]
+
+  @@map("hotels")
+}
+
+// ----------------------------------------------------------------------------
+// USUARIOS, ROLES Y PERMISOS (RBAC real, evaluado en backend)
+// ----------------------------------------------------------------------------
+
+enum RoleName {
+  ADMINISTRADOR
+  SUPERVISOR
+  OPERATIVO
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  users           UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+// Catálogo de acciones granulares. Permite, sin tocar código, ajustar qué
+// puede hacer cada rol (ej. quitarle a OPERATIVO el permiso de "case:assign").
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique // ej. "case:create", "case:close", "user:manage"
+  description String?
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  hotelId      String
+  hotel        Hotel     @relation(fields: [hotelId], references: [id])
+  fullName     String
+  email        String    @unique
+  passwordHash String
+  isActive     Boolean   @default(true)
+  areaId       String? // si el usuario es "responsable", su área base
+  area         Area?     @relation(fields: [areaId], references: [id])
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  roles              UserRole[]
+  refreshTokens      RefreshToken[]
+  passwordResets     PasswordResetToken[]
+  casesCreated       Case[]              @relation("CasesCreatedBy")
+  casesClosed        Case[]              @relation("CasesClosedBy")
+  caseHistoryEntries CaseHistory[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  assignmentsCreated CaseAssignment[]    @relation("AssignedBy")
+
+  @@index([hotelId])
+  @@map("users")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  ip        String?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// ----------------------------------------------------------------------------
+// CATÁLOGOS ADMINISTRABLES
+// ----------------------------------------------------------------------------
+
+model Location {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  cases Case[]
+
+  @@unique([hotelId, name])
+  @@map("locations")
+}
+
+model Area {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users             User[]
+  cases             Case[]
+  responsibles      Responsible[]
+  caseAssignments   CaseAssignment[]
+  subtypes          CaseSubtype[]
+
+  @@unique([hotelId, name])
+  @@map("areas")
+}
+
+// "Responsable" es una entidad propia (no necesariamente = User) para poder
+// listar responsables disponibles por área aunque aún no todos tengan login.
+model Responsible {
+  id        String   @id @default(uuid())
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id])
+  fullName  String
+  userId    String? // si el responsable también es un usuario del sistema
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  caseAssignments CaseAssignment[]
+  cases           Case[]
+
+  @@index([areaId])
+  @@map("responsibles")
+}
+
+// ----------------------------------------------------------------------------
+// CASO (entidad central única: QUEJA | SOLICITUD | futuros tipos)
+// ----------------------------------------------------------------------------
+
+enum CaseType {
+  QUEJA
+  SOLICITUD
+  // Futuro: RECLAMO, SUGERENCIA, FELICITACION, INCIDENTE, PETICION, MANTENIMIENTO, OTRO
+}
+
+enum CasePriority {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum CaseStatus {
+  SIN_RESOLVER
+  EN_PROCESO
+  RESUELTO
+  REABIERTO
+  ANULADO
+}
+
+// Prefijo de número de caso por tipo (arquitectura abierta a nuevos tipos).
+model CaseTypeConfig {
+  type   CaseType @id
+  prefix String   @unique // "QUE", "SOL", ...
+
+  @@map("case_type_config")
+}
+
+// Contador atómico por (hotel, tipo, año). Se actualiza dentro de una
+// transacción con SELECT ... FOR UPDATE para evitar colisiones concurrentes.
+model CaseSequence {
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id])
+  type        CaseType
+  year        Int
+  lastNumber  Int      @default(0)
+
+  @@id([hotelId, type, year])
+  @@map("case_sequences")
+}
+
+// "Tipo de queja/solicitud": catálogo administrable, condicionado por
+// (área responsable, tipo de caso). Ej: área "Sistemas" + tipo QUEJA ->
+// "Conexión a internet"; área "Sistemas" + tipo SOLICITUD -> "Clave wifi".
+// Se resuelve dinámicamente en el formulario según el área elegida, sin
+// necesidad de cambios de código para agregar nuevas combinaciones.
+model CaseSubtype {
+  id        String   @id @default(uuid())
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id])
+  type      CaseType
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  cases Case[]
+
+  @@unique([areaId, type, name])
+  @@index([areaId, type])
+  @@map("case_subtypes")
+}
+
+model Case {
+  id             String       @id @default(uuid())
+  hotelId        String
+  hotel          Hotel        @relation(fields: [hotelId], references: [id])
+  caseNumber     String       @unique // ej. QUE-2026-000001
+  type           CaseType
+  description    String
+  locationId     String
+  location       Location     @relation(fields: [locationId], references: [id])
+  room           String? // habitación (solo aplica a ciertas ubicaciones, ej. torres)
+  areaId         String?
+  area           Area?        @relation(fields: [areaId], references: [id])
+  subtypeId      String? // tipo de queja/solicitud (depende del área elegida)
+  subtype        CaseSubtype? @relation(fields: [subtypeId], references: [id])
+  responsibleId  String?
+  responsible    Responsible? @relation(fields: [responsibleId], references: [id])
+  priority       CasePriority @default(MEDIA)
+  status         CaseStatus   @default(SIN_RESOLVER)
+  resolutionNote String?
+
+  createdById String
+  createdBy   User   @relation("CasesCreatedBy", fields: [createdById], references: [id])
+  closedById  String?
+  closedBy    User?   @relation("CasesClosedBy", fields: [closedById], references: [id])
+
+  createdAt DateTime  @default(now()) // fecha/hora del servidor, nunca del cliente
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+
+  history     CaseHistory[]
+  audits      CaseAudit[]
+  assignments CaseAssignment[]
+  notifications Notification[]
+
+  @@index([hotelId, type])
+  @@index([status])
+  @@index([priority])
+  @@index([areaId])
+  @@index([responsibleId])
+  @@index([subtypeId])
+  @@index([createdAt])
+  @@map("cases")
+}
+
+model CaseAssignment {
+  id            String       @id @default(uuid())
+  caseId        String
+  case          Case         @relation(fields: [caseId], references: [id])
+  areaId        String
+  area          Area         @relation(fields: [areaId], references: [id])
+  responsibleId String
+  responsible   Responsible  @relation(fields: [responsibleId], references: [id])
+  assignedById  String
+  assignedBy    User         @relation("AssignedBy", fields: [assignedById], references: [id])
+  assignedAt    DateTime     @default(now())
+
+  @@index([caseId])
+  @@map("case_assignments")
+}
+
+// Historial funcional (línea de tiempo visible al usuario).
+model CaseHistory {
+  id         String   @id @default(uuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id])
+  action     String // CREADO, ASIGNADO, CAMBIO_ESTADO, RESUELTO, REABIERTO, ANULADO...
+  fromStatus CaseStatus?
+  toStatus   CaseStatus?
+  note       String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([caseId])
+  @@map("case_history")
+}
+
+// Auditoría específica de caso (valores anteriores/nuevos en JSON), separada
+// del AuditLog general para permitir consultas rápidas por caso.
+model CaseAudit {
+  id        String   @id @default(uuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id])
+  userId    String
+  action    String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
+  @@map("case_audit")
+}
+
+// ----------------------------------------------------------------------------
+// AUDITORÍA GENERAL DEL SISTEMA (login, logout, cambios de usuarios, etc.)
+// ----------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String // LOGIN, LOGOUT, USER_CREATE, ROLE_CHANGE, CATALOG_UPDATE, ...
+  entity     String // "User", "Case", "Area", ...
+  entityId   String?
+  oldValues  Json?
+  newValues  Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ----------------------------------------------------------------------------
+// NOTIFICACIONES INTERNAS (arquitectura abierta a correo/Teams/WhatsApp)
+// ----------------------------------------------------------------------------
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  TEAMS
+  WHATSAPP
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id])
+  caseId    String?
+  case      Case?               @relation(fields: [caseId], references: [id])
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}

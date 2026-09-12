@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hotel_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME}
+      POSTGRES_DB: hotel_cases
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hotel_app -d hotel_cases']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://hotel_app:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/hotel_cases?schema=public
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_ACCESS_SECRET}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-CHANGE_ME_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3000
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:8081
+      DEFAULT_HOTEL_CODE: HTL-DEMO-01
+    ports:
+      - '3000:3000'
+      - '5555:5555'
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '8081:80'
+
+volumes:
+  postgres_data:

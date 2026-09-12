@@ -1,0 +1,97 @@
+<div class="cases-page">
+<div class="list-header">
+  <h2>{{ pageTitle() }}</h2>
+  <a class="btn btn-primary" routerLink="/casos/nuevo" *ngIf="auth.hasPermission('case:create')">
+    + Nuevo caso
+  </a>
+</div>
+
+<div class="drilldown-banner" *ngIf="drillDownLabel() as label">
+  <span>🔎 Filtrado desde el dashboard: <strong>{{ label }}</strong></span>
+  <button class="btn btn-outline btn-sm" (click)="clearDrillDownFilters()">Quitar filtros</button>
+</div>
+
+<div class="filters-bar">
+  <input
+    type="text"
+    placeholder="Buscar por número, descripción, usuario o responsable..."
+    [(ngModel)]="filters.search"
+    (ngModelChange)="onSearchChange()"
+  />
+
+  <select *ngIf="!fixedType" [(ngModel)]="filters.type" (ngModelChange)="onSearchChange()">
+    <option value="">Todos los tipos</option>
+    <option value="QUEJA">Queja</option>
+    <option value="SOLICITUD">Solicitud</option>
+  </select>
+
+  <select [(ngModel)]="filters.status" (ngModelChange)="onSearchChange()">
+    <option value="">Todos los estados</option>
+    <option value="SIN_RESOLVER">Sin resolver</option>
+    <option value="EN_PROCESO">En proceso</option>
+    <option value="RESUELTO">Resuelto</option>
+    <option value="REABIERTO">Reabierto</option>
+  </select>
+
+  <select [(ngModel)]="filters.priority" (ngModelChange)="onSearchChange()">
+    <option value="">Toda prioridad</option>
+    <option value="BAJA">Baja</option>
+    <option value="MEDIA">Media</option>
+    <option value="ALTA">Alta</option>
+    <option value="CRITICA">Crítica</option>
+  </select>
+</div>
+
+<div class="card" style="padding: 0; overflow-x: auto">
+  <table class="data-table" *ngIf="!loading() && items().length > 0">
+    <thead>
+      <tr>
+        <th (click)="sortBy('caseNumber')">Número</th>
+        <th>Tipo</th>
+        <th (click)="sortBy('createdAt')">Fecha</th>
+        <th>Ubicación</th>
+        <th>Habitación</th>
+        <th>Descripción</th>
+        <th>Área</th>
+        <th>Tipo de queja/solicitud</th>
+        <th>Responsable</th>
+        <th (click)="sortBy('priority')">Prioridad</th>
+        <th (click)="sortBy('status')">Estado</th>
+        <th>Usuario</th>
+        <th (click)="sortBy('closedAt')">Cierre</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of items()" (click)="openDetail(c.id)" style="cursor: pointer">
+        <td>{{ c.caseNumber }}</td>
+        <td>{{ c.type }}</td>
+        <td>{{ c.createdAt | date: 'short' }}</td>
+        <td>{{ c.location.name }}</td>
+        <td>{{ c.room ?? '—' }}</td>
+        <td class="truncate">{{ c.description }}</td>
+        <td>{{ c.area?.name ?? '—' }}</td>
+        <td>{{ c.subtype?.name ?? '—' }}</td>
+        <td>{{ c.responsible?.fullName ?? '—' }}</td>
+        <td><span class="badge" [ngClass]="'badge-' + c.priority">{{ c.priority }}</span></td>
+        <td><span class="badge" [ngClass]="'badge-' + c.status">{{ c.status }}</span></td>
+        <td>{{ c.createdBy.fullName }}</td>
+        <td>{{ c.closedAt ? (c.closedAt | date: 'short') : '—' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="empty-state" *ngIf="!loading() && items().length === 0">
+    No existen resultados para los filtros seleccionados.
+  </div>
+
+  <div *ngIf="loading()" style="padding: 20px">
+    <div class="skeleton" style="height: 40px; margin-bottom: 8px" *ngFor="let i of [1,2,3,4,5]"></div>
+  </div>
+</div>
+
+<div class="pagination" *ngIf="!loading() && totalPages() > 1">
+  <button class="btn btn-outline btn-sm" (click)="goToPage(page() - 1)" [disabled]="page() === 1">← Anterior</button>
+  <span>Página {{ page() }} de {{ totalPages() }} ({{ total() }} casos)</span>
+  <button class="btn btn-outline btn-sm" (click)="goToPage(page() + 1)" [disabled]="page() === totalPages()">Siguiente →</button>
+</div>
+</div>

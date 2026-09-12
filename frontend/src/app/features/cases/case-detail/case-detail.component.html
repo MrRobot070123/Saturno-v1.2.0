@@ -1,0 +1,99 @@
+<div class="case-detail-page">
+<button class="btn btn-outline btn-sm" (click)="goBack()">← Volver a casos</button>
+
+<div *ngIf="loading()" class="skeleton" style="height: 300px; margin-top: 16px"></div>
+
+<ng-container *ngIf="!loading() && caseItem() as c">
+  <div class="detail-header">
+    <div>
+      <h2>{{ c.caseNumber }}</h2>
+      <span class="badge" [ngClass]="'badge-' + c.type" style="background:#334155">{{ c.type }}</span>
+      <span class="badge" [ngClass]="'badge-' + c.status">{{ c.status }}</span>
+      <span class="badge" [ngClass]="'badge-' + c.priority">{{ c.priority }}</span>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div class="card">
+      <h4>Información del caso</h4>
+      <dl>
+        <dt>Ubicación</dt><dd>{{ c.location.name }}</dd>
+        <dt *ngIf="c.room">Habitación</dt><dd *ngIf="c.room">{{ c.room }}</dd>
+        <dt>Descripción</dt><dd>{{ c.description }}</dd>
+        <dt>Área</dt><dd>{{ c.area?.name ?? 'Sin asignar' }}</dd>
+        <dt *ngIf="c.subtype">Tipo de {{ c.type === 'QUEJA' ? 'queja' : 'solicitud' }}</dt>
+        <dd *ngIf="c.subtype">{{ c.subtype.name }}</dd>
+        <dt>Responsable</dt><dd>{{ c.responsible?.fullName ?? 'Sin asignar' }}</dd>
+        <dt>Registrado por</dt><dd>{{ c.createdBy.fullName }}</dd>
+        <dt>Fecha creación</dt><dd>{{ c.createdAt | date: 'medium' }}</dd>
+        <dt *ngIf="c.closedAt">Fecha de cierre</dt><dd *ngIf="c.closedAt">{{ c.closedAt | date: 'medium' }}</dd>
+        <dt *ngIf="c.closedBy">Cerrado por</dt><dd *ngIf="c.closedBy">{{ c.closedBy.fullName }}</dd>
+        <dt *ngIf="c.resolutionNote">Observación de solución</dt><dd *ngIf="c.resolutionNote">{{ c.resolutionNote }}</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h4>Historial</h4>
+      <ul class="timeline">
+        <li *ngFor="let h of history()">
+          <div class="timeline-time">{{ h.createdAt | date: 'short' }}</div>
+          <div class="timeline-body">
+            <strong>{{ h.action }}</strong>
+            <span *ngIf="h.note"> — {{ h.note }}</span>
+            <div class="timeline-user">{{ h.user.fullName }}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card actions-card" *ngIf="c.status !== 'RESUELTO' && c.status !== 'ANULADO'">
+    <h4>Asignar responsable</h4>
+    <div class="form-row">
+      <select [(ngModel)]="assignAreaId" (ngModelChange)="onAssignAreaChange()" [disabled]="!auth.hasPermission('case:assign')">
+        <option value="">Selecciona un área</option>
+        <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
+      </select>
+      <select [(ngModel)]="assignResponsibleId" [disabled]="!assignAreaId || !auth.hasPermission('case:assign')">
+        <option value="">Selecciona un responsable</option>
+        <option *ngFor="let r of responsibles()" [value]="r.id">{{ r.fullName }}</option>
+      </select>
+      <button
+        class="btn btn-primary"
+        (click)="assign()"
+        [disabled]="actionLoading() || !assignAreaId || !assignResponsibleId || !auth.hasPermission('case:assign')"
+      >
+        Asignar
+      </button>
+    </div>
+  </div>
+
+  <div class="card actions-card" *ngIf="c.status === 'SIN_RESOLVER' && auth.hasPermission('case:change-status')">
+    <h4>Cambiar estado</h4>
+    <button class="btn btn-primary" (click)="moveToInProgress()" [disabled]="actionLoading()">
+      Marcar como En proceso
+    </button>
+  </div>
+
+  <div
+    class="card actions-card"
+    *ngIf="(c.status === 'EN_PROCESO' || c.status === 'REABIERTO') && auth.hasPermission('case:close')"
+  >
+    <h4>Resolver caso</h4>
+    <div class="form-field">
+      <label>Observación de solución (obligatoria)</label>
+      <textarea [(ngModel)]="resolutionNote" rows="3"></textarea>
+    </div>
+    <button class="btn btn-primary" (click)="close()" [disabled]="actionLoading()">Marcar como Resuelto</button>
+  </div>
+
+  <div class="card actions-card" *ngIf="c.status === 'RESUELTO' && auth.hasPermission('case:reopen')">
+    <h4>Reabrir caso</h4>
+    <div class="form-field">
+      <label>Motivo de la reapertura</label>
+      <textarea [(ngModel)]="reopenReason" rows="3"></textarea>
+    </div>
+    <button class="btn btn-outline" (click)="reopen()" [disabled]="actionLoading()">Reabrir</button>
+  </div>
+</ng-container>
+</div>

@@ -1,0 +1,108 @@
+<div class="case-form-page">
+  <div class="case-form-card">
+    <div class="case-form-header">
+      <h2>Nuevo caso</h2>
+      <p class="case-form-subtitle">
+        Registra una queja o solicitud. El responsable específico (personal en turno) se asigna
+        después, desde el detalle del caso.
+      </p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="case-form">
+      <section class="form-section">
+        <h4 class="form-section-title"><span class="section-icon">📋</span> Tipo y ubicación</h4>
+
+        <div class="form-row cols-2">
+          <div class="form-field">
+            <label>Tipo de caso</label>
+            <select formControlName="type">
+              <option value="QUEJA">⚠️ Queja</option>
+              <option value="SOLICITUD">📝 Solicitud</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Prioridad</label>
+            <select formControlName="priority">
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
+              <option value="CRITICA">Crítica</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row cols-2">
+          <div class="form-field">
+            <label>Ubicación</label>
+            <select formControlName="locationId">
+              <option value="" disabled>Selecciona una ubicación</option>
+              <option *ngFor="let l of locations()" [value]="l.id">{{ l.name }}</option>
+            </select>
+            <span class="form-error" *ngIf="form.get('locationId')?.touched && form.get('locationId')?.invalid">
+              Debes seleccionar una ubicación
+            </span>
+          </div>
+
+          <div class="form-field" *ngIf="rooms().length > 0">
+            <label>Habitación</label>
+            <select formControlName="room">
+              <option value="">Selecciona la habitación</option>
+              <option *ngFor="let r of rooms()" [value]="r">{{ r }}</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h4 class="form-section-title"><span class="section-icon">🧭</span> Área responsable (opcional al crear)</h4>
+
+        <div class="form-row cols-2">
+          <div class="form-field">
+            <label>Área</label>
+            <select formControlName="areaId">
+              <option value="">Sin asignar todavía</option>
+              <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-field" *ngIf="form.get('areaId')?.value">
+            <label>Tipo de {{ form.get('type')?.value === 'QUEJA' ? 'queja' : 'solicitud' }}</label>
+            <select formControlName="subtypeId">
+              <option value="">General / no especificado</option>
+              <option *ngFor="let s of subtypes()" [value]="s.id">{{ s.name }}</option>
+            </select>
+            <span class="form-hint-small" *ngIf="form.get('areaId')?.value && subtypes().length === 0">
+              Esta área aún no tiene tipos configurados.
+            </span>
+          </div>
+        </div>
+        <p class="form-hint-small">
+          El responsable específico (personal en turno) se asigna luego de crear el caso, desde su
+          pantalla de detalle.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h4 class="form-section-title"><span class="section-icon">✍️</span> Descripción</h4>
+        <div class="form-field">
+          <textarea
+            formControlName="description"
+            appSentenceCase
+            rows="4"
+            placeholder="Describe la situación con el mayor detalle posible..."
+          ></textarea>
+          <span class="form-error" *ngIf="form.get('description')?.touched && form.get('description')?.invalid">
+            La descripción debe tener al menos 10 caracteres
+          </span>
+        </div>
+      </section>
+
+      <div class="case-form-actions">
+        <button class="btn btn-primary btn-lg" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Guardando...' : '✓ Guardar caso' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

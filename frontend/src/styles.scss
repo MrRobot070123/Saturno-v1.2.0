@@ -1,0 +1,377 @@
+// ============================================================================
+// Sistema de diseño - SATURNO · Quejas y Solicitudes
+// Paleta extraída directamente del logo (azul vívido del anillo/"7",
+// navy profundo del texto "SATURNO", azul claro de los destellos).
+// ============================================================================
+
+:root {
+  // Paleta principal (marca SATURNO)
+  --color-primary: #019cff; // azul vívido del anillo/"7"
+  --color-primary-light: #3fb2ff; // azul claro de los destellos
+  --color-primary-dark: #01133a; // navy profundo del texto "SATURNO"
+  --color-accent: #0a2a6b; // azul secundario, para énfasis alterno
+
+  // Estados de caso
+  --color-status-sin-resolver: #dc2626;
+  --color-status-en-proceso: #d97706;
+  --color-status-resuelto: #16a34a;
+  --color-status-reabierto: #7c3aed;
+  --color-status-anulado: #6b7280;
+
+  // Prioridades
+  --color-priority-baja: #64748b;
+  --color-priority-media: #2563eb;
+  --color-priority-alta: #d97706;
+  --color-priority-critica: #dc2626;
+
+  // Neutros
+  --color-bg: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  // Color de títulos y valores destacados (KPIs). En tema claro es el navy
+  // de marca; en tema oscuro se sobreescribe más abajo porque ese mismo
+  // navy quedaría ilegible sobre un fondo también oscuro.
+  --color-heading: var(--color-primary-dark);
+
+  // Espaciado y forma
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+// ----------------------------------------------------------------------------
+// Tema oscuro: se activa poniendo data-theme="dark" en <html> (ThemeService).
+// Los colores de marca (--color-primary*) se mantienen iguales en ambos
+// temas -son vívidos y funcionan bien sobre fondos claros u oscuros-; solo
+// se ajustan los neutros (fondo, superficies, bordes, texto) y las sombras.
+// ----------------------------------------------------------------------------
+:root[data-theme='dark'] {
+  --color-bg: #0a0f24;
+  --color-surface: #121a3a;
+  --color-border: #263056;
+  --color-text: #e7ecff;
+  --color-text-muted: #94a3c4;
+  --color-accent: #3fb2ff;
+  --color-heading: #7fd1ff;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+html {
+  transition: background-color 0.2s ease;
+}
+
+body,
+.card,
+.kpi-card,
+input,
+select,
+textarea,
+.sidebar,
+.topbar,
+.data-table {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+// Base para todos los campos de formulario (muchos componentes solo definen
+// borde/padding propios): sin esto, en tema oscuro los inputs se quedarían
+// con fondo blanco por defecto del navegador, rompiendo la consistencia.
+input,
+select,
+textarea {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
+// Logo SATURNO: en tema claro conserva sus colores normales (transparente,
+// sin fondo). En tema oscuro se le agrega un halo/circulo claro detrás para
+// que contraste y "flote" con un toque más estilizado sobre fondos oscuros.
+[data-theme='dark'] .brand-logo,
+[data-theme='dark'] .login-logo {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 72%);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 6px rgba(63, 178, 255, 0.45));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+// ---------- Componentes reutilizables (clases utilitarias) ----------
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--color-primary-light); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn-outline:hover { background: var(--color-bg); }
+
+.btn-danger {
+  background: var(--color-status-sin-resolver);
+  color: #fff;
+}
+
+.btn-sm { padding: 6px 10px; font-size: 13px; }
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.15);
+}
+
+.form-error {
+  color: var(--color-status-sin-resolver);
+  font-size: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.badge-SIN_RESOLVER { background: var(--color-status-sin-resolver); }
+.badge-EN_PROCESO { background: var(--color-status-en-proceso); }
+.badge-RESUELTO { background: var(--color-status-resuelto); }
+.badge-REABIERTO { background: var(--color-status-reabierto); }
+.badge-ANULADO { background: var(--color-status-anulado); }
+
+.badge-BAJA { background: var(--color-priority-baja); }
+.badge-MEDIA { background: var(--color-priority-media); }
+.badge-ALTA { background: var(--color-priority-alta); }
+.badge-CRITICA { background: var(--color-priority-critica); }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-primary-light);
+}
+.data-table tbody tr:hover td {
+  color: #fff;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eef1f5 25%, #e4e8ee 37%, #eef1f5 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-muted);
+}
+
+.banner {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  max-width: 380px;
+}
+.banner-success { background: var(--color-status-resuelto); }
+.banner-error { background: var(--color-status-sin-resolver); }
+.banner-info { background: var(--color-primary); }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.kpi-clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.kpi-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+.card-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin: 8px 0 12px;
+}
+
+.drilldown-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #eaf5ff;
+  border: 1px solid var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-heading);
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .kpi-grid, .charts-grid { grid-template-columns: 1fr; }
+  .data-table { font-size: 12px; }
+}
+
+// Pie de página con copyright (usado en el layout autenticado y en login)
+.app-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 16px 12px;
+}

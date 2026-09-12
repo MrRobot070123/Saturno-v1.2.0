@@ -1,0 +1,226 @@
+// El login SIEMPRE se ve en tema claro, sin importar si el usuario dejó
+// guardada la preferencia de tema oscuro (esta se aplica globalmente en
+// <html data-theme="dark">, pero aquí se sobreescribe localmente con los
+// valores claros de :root, ya que .login-shell es el ancestro más cercano
+// para todo lo que hay dentro del login: la sobreescritura más cercana
+// gana sobre la del :root, sin importar cuándo se guardó la preferencia).
+.login-shell {
+  --color-bg: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-accent: #0a2a6b;
+  --color-heading: #01133a;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  min-height: 100vh;
+  display: flex;
+}
+
+// ---------- Panel visual izquierdo (fotos del hotel rotando) ----------
+
+.login-visual {
+  position: relative;
+  flex: 1.15;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px;
+  color: #fff;
+}
+
+.bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.bg-layer.active {
+  opacity: 1;
+}
+
+.visual-overlay {
+  position: absolute;
+  inset: 0;
+  // Degradado de marca sobre la foto: suficiente contraste para el texto
+  // sin ocultar por completo la fotografía (mantiene el dinamismo pedido).
+  background: linear-gradient(
+    135deg,
+    rgba(1, 19, 58, 0.92) 0%,
+    rgba(1, 19, 58, 0.75) 45%,
+    rgba(1, 19, 58, 0.55) 100%
+  );
+}
+
+.visual-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 460px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+// Frase rotativa estilo "poema": columna angosta, tipografía más liviana
+// e itálica, buen interlineado y margen generoso a los lados (antes el
+// contenedor colapsaba sin ancho propio, forzando saltos de línea muy
+// pegados y una sola palabra por renglón).
+.rotating-phrase {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  padding: 0 12px;
+  font-size: 22px;
+  line-height: 1.7;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.rotating-phrase.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+// Logo del hotel: esquina inferior derecha del panel visual, con más
+// tamaño para que tenga presencia propia junto a la marca SATURNO.
+.hotel-logo {
+  position: absolute;
+  z-index: 2;
+  right: 40px;
+  bottom: 36px;
+  height: 68px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.95;
+}
+
+.visual-dots {
+  position: absolute;
+  bottom: 32px;
+  left: 56px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.visual-dots span {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  transition: background 0.4s ease;
+}
+
+.visual-dots span.active {
+  background: #fff;
+}
+
+// ---------- Panel derecho (formulario) ----------
+
+.login-panel {
+  flex: 1;
+  min-width: 380px;
+  max-width: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+// Marca SATURNO dentro del formulario, con el mismo estilo/tamaño que
+// antes tenía en el panel visual (logo 84px + título 34px).
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+// Logo oficial completo de SATURNO, sin texto aparte (el propio logo ya
+// incluye el nombre de marca).
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo-full {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  object-fit: contain;
+}
+
+.login-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.login-intro {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 0 0 24px;
+}
+
+.login-welcome {
+  text-align: center;
+}
+
+.login-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.login-error {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .login-shell {
+    flex-direction: column;
+  }
+
+  .login-visual {
+    display: none;
+  }
+
+  .login-panel {
+    max-width: none;
+    min-width: 0;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-logo-full {
+    max-width: 220px;
+  }
+}

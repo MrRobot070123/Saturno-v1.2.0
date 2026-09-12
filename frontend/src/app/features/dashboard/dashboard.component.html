@@ -1,0 +1,126 @@
+<div class="dashboard-header">
+  <h2>Dashboard</h2>
+
+  <div class="filters-bar">
+    <select [(ngModel)]="filters.range" (ngModelChange)="onFilterChange()">
+      <option value="today">Hoy</option>
+      <option value="last_7_days">Últimos 7 días</option>
+      <option value="last_30_days">Últimos 30 días</option>
+      <option value="this_month">Este mes</option>
+      <option value="last_month">Mes anterior</option>
+      <option value="this_year">Este año</option>
+    </select>
+
+    <select [(ngModel)]="filters.type" (ngModelChange)="onFilterChange()">
+      <option value="">Todos los tipos</option>
+      <option value="QUEJA">Quejas</option>
+      <option value="SOLICITUD">Solicitudes</option>
+    </select>
+
+    <select [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()">
+      <option value="">Todos los estados</option>
+      <option value="SIN_RESOLVER">Sin resolver</option>
+      <option value="EN_PROCESO">En proceso</option>
+      <option value="RESUELTO">Resuelto</option>
+    </select>
+
+    <select [(ngModel)]="filters.areaId" (ngModelChange)="onFilterChange()">
+      <option value="">Todas las áreas</option>
+      <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
+    </select>
+
+    <select [(ngModel)]="filters.locationId" (ngModelChange)="onFilterChange()">
+      <option value="">Todas las ubicaciones</option>
+      <option *ngFor="let l of locations()" [value]="l.id">{{ l.name }}</option>
+    </select>
+  </div>
+</div>
+
+<ng-container *ngIf="loading()">
+  <div class="kpi-grid">
+    <div class="skeleton" style="height: 90px" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+</ng-container>
+
+<div class="kpi-grid" *ngIf="summary() as s">
+  <div class="kpi-card kpi-clickable" (click)="goToCases()" title="Ver todos los casos">
+    <div class="kpi-value">{{ s.totalCasos }}</div><div class="kpi-label">Total de casos</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ type: 'QUEJA' })" title="Ver quejas">
+    <div class="kpi-value">{{ s.totalQuejas }}</div><div class="kpi-label">Quejas</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ type: 'SOLICITUD' })" title="Ver solicitudes">
+    <div class="kpi-value">{{ s.totalSolicitudes }}</div><div class="kpi-label">Solicitudes</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ status: 'SIN_RESOLVER' })" title="Ver casos sin resolver">
+    <div class="kpi-value">{{ s.sinResolver }}</div><div class="kpi-label">Sin resolver</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ status: 'EN_PROCESO' })" title="Ver casos en proceso">
+    <div class="kpi-value">{{ s.enProceso }}</div><div class="kpi-label">En proceso</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ status: 'RESUELTO' })" title="Ver casos resueltos">
+    <div class="kpi-value">{{ s.resueltos }}</div><div class="kpi-label">Resueltos</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ priority: 'CRITICA' })" title="Ver casos críticos">
+    <div class="kpi-value">{{ s.criticos }}</div><div class="kpi-label">Casos críticos</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCasesFixedRange('day')" title="Ver casos de hoy">
+    <div class="kpi-value">{{ s.delDia }}</div><div class="kpi-label">Del día</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCasesFixedRange('week')" title="Ver casos de esta semana">
+    <div class="kpi-value">{{ s.delaSemana }}</div><div class="kpi-label">De la semana</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCasesFixedRange('month')" title="Ver casos de este mes">
+    <div class="kpi-value">{{ s.delMes }}</div><div class="kpi-label">Del mes</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ status: 'RESUELTO' })" title="Ver casos resueltos">
+    <div class="kpi-value">{{ s.porcentajeResolucion }}%</div><div class="kpi-label">% Resolución</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToCases({ status: 'RESUELTO' })" title="Ver casos resueltos">
+    <div class="kpi-value">{{ s.tiempoPromedioResolucionHoras ?? '—' }}</div>
+    <div class="kpi-label">Horas prom. resolución</div>
+  </div>
+</div>
+
+<div class="charts-grid" style="margin-top: 20px">
+  <div class="card">
+    <h4>Casos por estado</h4>
+    <p class="card-hint">Haz clic en un segmento para ver esos casos</p>
+    <canvas #statusChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Quejas vs solicitudes</h4>
+    <p class="card-hint">Haz clic en un segmento para ver esos casos</p>
+    <canvas #typeChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Casos por área</h4>
+    <p class="card-hint">Haz clic en una barra para ver esos casos</p>
+    <canvas #areaChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Casos por ubicación</h4>
+    <p class="card-hint">Haz clic en una barra para ver esos casos</p>
+    <canvas #locationChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Evolución de casos</h4>
+    <p class="card-hint">Haz clic en un punto para ver los casos de ese día</p>
+    <canvas #evolutionChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Tiempo promedio de resolución por área</h4>
+    <p class="card-hint">Haz clic en una barra para ver los resueltos de esa área</p>
+    <canvas #resolutionTimeChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Casos por habitación</h4>
+    <p class="card-hint">Solo casos registrados en habitaciones de torre · haz clic para ver el detalle</p>
+    <canvas #roomChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Casos por tipo de queja/solicitud</h4>
+    <p class="card-hint">Haz clic en una barra para ver esos casos</p>
+    <canvas #subtypeChart></canvas>
+  </div>
+</div>

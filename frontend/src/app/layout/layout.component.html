@@ -1,0 +1,86 @@
+<div class="app-shell" [class.collapsed]="sidebarCollapsed()">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="assets/planet-icon.png" alt="Saturno" class="brand-logo" />
+      <span class="brand-text" *ngIf="!sidebarCollapsed()">
+        SATURNO
+        <small>Quejas y Solicitudes</small>
+      </span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a
+        *ngFor="let item of visibleNavItems()"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        class="nav-item"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed()">{{ item.label }}</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <button class="btn btn-outline btn-sm" (click)="toggleSidebar()" aria-label="Colapsar menú">☰</button>
+
+      <div class="topbar-right">
+        <button
+          class="btn btn-outline btn-sm theme-toggle"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.theme() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          [title]="theme.theme() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+        >
+          {{ theme.theme() === 'dark' ? '☀️' : '🌙' }}
+        </button>
+        <div class="notif-wrapper">
+          <button class="notif-badge" title="Notificaciones" (click)="toggleNotifPanel()">
+            🔔 <span *ngIf="unreadCount() > 0" class="notif-count">{{ unreadCount() }}</span>
+          </button>
+
+          <div class="notif-panel" *ngIf="notifPanelOpen()">
+            <div class="notif-panel-header">
+              <strong>Notificaciones</strong>
+              <button class="btn btn-outline btn-sm" (click)="markAllNotificationsRead()" *ngIf="unreadCount() > 0">
+                Marcar todas leídas
+              </button>
+            </div>
+
+            <div *ngIf="notifLoading()" class="notif-empty">Cargando...</div>
+
+            <ul class="notif-list" *ngIf="!notifLoading()">
+              <li
+                *ngFor="let n of notifications()"
+                [class.unread]="!n.readAt"
+                (click)="openNotification(n)"
+              >
+                <div class="notif-title">{{ n.title }}</div>
+                <div class="notif-message">{{ n.message }}</div>
+                <div class="notif-time">{{ n.createdAt | date: 'short' }}</div>
+              </li>
+              <li *ngIf="notifications().length === 0" class="notif-empty">No tienes notificaciones.</li>
+            </ul>
+          </div>
+        </div>
+        <span class="user-chip">{{ auth.currentUser()?.fullName }}</span>
+        <button class="btn btn-outline btn-sm" (click)="logout()">Salir</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+
+    <app-footer></app-footer>
+  </div>
+</div>
+
+<div
+  *ngIf="banner.message() as msg"
+  class="banner"
+  [ngClass]="'banner-' + msg.type"
+  (click)="banner.dismiss()"
+>
+  {{ msg.text }}
+</div>

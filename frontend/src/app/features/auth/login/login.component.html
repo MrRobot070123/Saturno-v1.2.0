@@ -1,0 +1,63 @@
+<div class="login-shell">
+  <div class="login-visual">
+    <!-- Fondo rotativo con las fotos reales del hotel, con crossfade suave -->
+    <div
+      class="bg-layer"
+      *ngFor="let slide of slides; let i = index"
+      [class.active]="i === activeSlideIndex()"
+      [style.backgroundImage]="'url(' + slide.bg + ')'"
+    ></div>
+    <div class="visual-overlay"></div>
+
+    <div class="visual-content">
+      <p class="rotating-phrase" *ngFor="let slide of slides; let i = index" [class.active]="i === activeSlideIndex()">
+        {{ slide.phrase }}
+      </p>
+    </div>
+
+    <img src="assets/login/hotel-logo-white.png" alt="Hotel Barranquilla Plaza" class="hotel-logo" />
+
+    <div class="visual-dots">
+      <span *ngFor="let slide of slides; let i = index" [class.active]="i === activeSlideIndex()"></span>
+    </div>
+  </div>
+
+  <div class="login-panel">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="assets/logo-saturno.png" alt="SATURNO · Quejas y Solicitudes" class="login-logo-full" />
+      </div>
+
+      <div class="login-welcome">
+        <h2 class="login-title">Bienvenido de nuevo</h2>
+        <p class="login-intro">Ingresa con tu cuenta para continuar.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-field">
+          <label for="email">Correo electrónico</label>
+          <input id="email" type="email" formControlName="email" placeholder="usuario@hotel.com" />
+          <span class="form-error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+            Ingresa un correo válido
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label for="password">Contraseña</label>
+          <input id="password" type="password" formControlName="password" placeholder="••••••••" />
+          <span class="form-error" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
+            La contraseña es obligatoria
+          </span>
+        </div>
+
+        <div class="form-error login-error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+
+        <button class="btn btn-primary login-btn" type="submit" [disabled]="loading()">
+          {{ loading() ? 'Ingresando...' : 'Ingresar' }}
+        </button>
+      </form>
+
+      <app-footer></app-footer>
+    </div>
+  </div>
+</div>
