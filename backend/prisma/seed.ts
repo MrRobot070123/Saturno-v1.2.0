@@ -32,10 +32,20 @@ const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'case:edit',
     'case:change-status',
     'case:close',
+    'case:reopen',
     'dashboard:view',
     'report:view',
   ],
-  OPERATIVO: ['case:view', 'case:create', 'case:edit', 'case:change-status', 'case:close', 'dashboard:view'],
+  OPERATIVO: [
+    'case:view',
+    'case:create',
+    'case:assign',
+    'case:edit',
+    'case:change-status',
+    'case:close',
+    'case:reopen',
+    'dashboard:view',
+  ],
 };
 
 const AREAS = [
