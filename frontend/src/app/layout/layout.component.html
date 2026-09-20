@@ -1,8 +1,12 @@
-<div class="app-shell" [class.collapsed]="sidebarCollapsed()">
-  <aside class="sidebar">
+<div
+  class="app-shell"
+  [class.collapsed]="sidebarCollapsed()"
+  [class.nav-open]="mobileNavOpen()"
+>
+  <aside class="sidebar" id="app-sidebar">
     <div class="sidebar-brand">
       <img src="assets/planet-icon.png" alt="Saturno" class="brand-logo" />
-      <span class="brand-text" *ngIf="!sidebarCollapsed()">
+      <span class="brand-text">
         SATURNO
         <small>Quejas y Solicitudes</small>
       </span>
@@ -14,16 +18,26 @@
         [routerLink]="item.path"
         routerLinkActive="active"
         class="nav-item"
+        (click)="closeMobileNav()"
       >
         <span class="nav-icon">{{ item.icon }}</span>
-        <span class="nav-label" *ngIf="!sidebarCollapsed()">{{ item.label }}</span>
+        <span class="nav-label">{{ item.label }}</span>
       </a>
     </nav>
   </aside>
 
+  <!-- Fondo oscuro detrás del menú en móvil; al tocarlo se cierra el menú -->
+  <div class="sidebar-backdrop" (click)="closeMobileNav()"></div>
+
   <div class="main-area">
     <header class="topbar">
-      <button class="btn btn-outline btn-sm" (click)="toggleSidebar()" aria-label="Colapsar menú">☰</button>
+      <button
+        class="btn btn-outline btn-sm menu-toggle"
+        (click)="toggleSidebar()"
+        aria-controls="app-sidebar"
+        [attr.aria-expanded]="mobileNavOpen()"
+        aria-label="Abrir o cerrar el menú"
+      >☰</button>
 
       <div class="topbar-right">
         <button
@@ -35,7 +49,7 @@
           {{ theme.theme() === 'dark' ? '☀️' : '🌙' }}
         </button>
         <div class="notif-wrapper">
-          <button class="notif-badge" title="Notificaciones" (click)="toggleNotifPanel()">
+          <button class="notif-badge" title="Notificaciones" aria-label="Notificaciones" (click)="toggleNotifPanel()">
             🔔 <span *ngIf="unreadCount() > 0" class="notif-count">{{ unreadCount() }}</span>
           </button>
 

@@ -49,3 +49,40 @@
   font-size: 13px;
   color: var(--color-text-muted);
 }
+
+@media (max-width: 768px) {
+  .list-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  // Búsqueda a todo el ancho; los selectores de a dos por fila.
+  .filters-bar input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .filters-bar select {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 0;
+  }
+
+  // En la tarjeta la descripción puede ocupar varias líneas (en la tabla de
+  // escritorio se recorta con "…"), y se muestra debajo de su etiqueta.
+  .truncate {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: left;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    text-align: center;
+  }
+}

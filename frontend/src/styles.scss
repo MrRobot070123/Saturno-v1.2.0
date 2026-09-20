@@ -258,11 +258,18 @@ table.data-table {
   border-bottom: 1px solid var(--color-border);
 }
 
-.data-table tbody tr:hover {
-  background: var(--color-primary-light);
+.table-card {
+  padding: 0;
+  overflow-x: auto;
 }
-.data-table tbody tr:hover td {
-  color: #fff;
+
+@media (hover: hover) {
+  .data-table tbody tr:hover {
+    background: var(--color-primary-light);
+  }
+  .data-table tbody tr:hover td {
+    color: #fff;
+  }
 }
 
 .skeleton {
@@ -363,9 +370,119 @@ table.data-table {
   gap: 16px;
 }
 
+// ============================================================================
+// Móvil (≤ 768px) - reglas globales
+// ============================================================================
 @media (max-width: 768px) {
-  .kpi-grid, .charts-grid { grid-template-columns: 1fr; }
-  .data-table { font-size: 12px; }
+  // iOS Safari hace zoom automático al enfocar un campo con fuente < 16px y
+  // deja la página "ampliada". !important porque varios componentes definen
+  // su propio font-size (13px/14px) con más especificidad.
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  // Áreas táctiles cómodas
+  .btn {
+    min-height: 44px;
+  }
+  .btn-sm {
+    min-height: 40px;
+  }
+
+  // Aviso emergente: a todo el ancho en vez de 380px pegados a la derecha
+  .banner {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  // Aviso "Filtrado desde el dashboard": el botón baja a otra línea si no cabe
+  .drilldown-banner {
+    flex-wrap: wrap;
+  }
+
+  // KPIs: 2 por fila (una sola columna alargaba el dashboard demasiado)
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .kpi-card {
+    padding: 14px;
+  }
+  .kpi-value {
+    font-size: 24px;
+  }
+
+  // Gráficos: una columna
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // Tablas -> tarjetas. Uso: <table class="data-table responsive-table"> y
+  // <td data-label="Nombre de la columna">. Las celdas con class="hide-mobile"
+  // se ocultan en móvil.
+  .table-card {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  table.responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 6px 14px;
+    margin-bottom: 12px;
+  }
+
+  .responsive-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--color-border);
+    text-align: right;
+    font-size: 13px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .responsive-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--color-text-muted);
+  }
+
+  .responsive-table td.hide-mobile {
+    display: none;
+  }
 }
 
 // Pie de página con copyright (usado en el layout autenticado y en login)

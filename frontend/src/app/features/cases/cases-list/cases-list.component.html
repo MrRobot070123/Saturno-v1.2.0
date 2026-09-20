@@ -42,8 +42,15 @@
   </select>
 </div>
 
-<div class="card" style="padding: 0; overflow-x: auto">
-  <table class="data-table" *ngIf="!loading() && items().length > 0">
+<!--
+  table-card + responsive-table (definidos en styles.scss): en escritorio es la
+  tabla de siempre; en móvil (≤768px) cada fila se muestra como una tarjeta y
+  cada celda usa su data-label como etiqueta. Las columnas con hide-mobile
+  (Tipo de queja/solicitud, Usuario, Cierre) solo se ven en escritorio y en el
+  detalle del caso.
+-->
+<div class="card table-card">
+  <table class="data-table responsive-table" *ngIf="!loading() && items().length > 0">
     <thead>
       <tr>
         <th (click)="sortBy('caseNumber')">Número</th>
@@ -63,19 +70,19 @@
     </thead>
     <tbody>
       <tr *ngFor="let c of items()" (click)="openDetail(c.id)" style="cursor: pointer">
-        <td>{{ c.caseNumber }}</td>
-        <td>{{ c.type }}</td>
-        <td>{{ c.createdAt | date: 'short' }}</td>
-        <td>{{ c.location.name }}</td>
-        <td>{{ c.room ?? '—' }}</td>
-        <td class="truncate">{{ c.description }}</td>
-        <td>{{ c.area?.name ?? '—' }}</td>
-        <td>{{ c.subtype?.name ?? '—' }}</td>
-        <td>{{ c.responsible?.fullName ?? '—' }}</td>
-        <td><span class="badge" [ngClass]="'badge-' + c.priority">{{ c.priority }}</span></td>
-        <td><span class="badge" [ngClass]="'badge-' + c.status">{{ c.status }}</span></td>
-        <td>{{ c.createdBy.fullName }}</td>
-        <td>{{ c.closedAt ? (c.closedAt | date: 'short') : '—' }}</td>
+        <td data-label="Número">{{ c.caseNumber }}</td>
+        <td data-label="Tipo">{{ c.type }}</td>
+        <td data-label="Fecha">{{ c.createdAt | date: 'short' }}</td>
+        <td data-label="Ubicación">{{ c.location.name }}</td>
+        <td data-label="Habitación">{{ c.room ?? '—' }}</td>
+        <td data-label="Descripción" class="truncate">{{ c.description }}</td>
+        <td data-label="Área">{{ c.area?.name ?? '—' }}</td>
+        <td data-label="Tipo de queja/solicitud" class="hide-mobile">{{ c.subtype?.name ?? '—' }}</td>
+        <td data-label="Responsable">{{ c.responsible?.fullName ?? '—' }}</td>
+        <td data-label="Prioridad"><span class="badge" [ngClass]="'badge-' + c.priority">{{ c.priority }}</span></td>
+        <td data-label="Estado"><span class="badge" [ngClass]="'badge-' + c.status">{{ c.status }}</span></td>
+        <td data-label="Usuario" class="hide-mobile">{{ c.createdBy.fullName }}</td>
+        <td data-label="Cierre" class="hide-mobile">{{ c.closedAt ? (c.closedAt | date: 'short') : '—' }}</td>
       </tr>
     </tbody>
   </table>

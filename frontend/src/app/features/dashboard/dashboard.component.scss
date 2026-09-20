@@ -23,3 +23,12 @@
 canvas {
   max-height: 260px;
 }
+
+@media (max-width: 768px) {
+  // Cada control de filtro (selectores, fechas, botones) ocupa media fila
+  // y puede encogerse, en vez de forzar un ancho propio que desborda.
+  .filters-bar > * {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 0;
+  }
+}

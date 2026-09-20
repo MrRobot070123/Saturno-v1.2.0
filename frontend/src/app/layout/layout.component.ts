@@ -23,7 +23,10 @@ interface NavItem {
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
+  // Escritorio: menú lateral expandido (íconos + texto) o colapsado (solo íconos).
   sidebarCollapsed = signal(false);
+  // Móvil: el menú es un drawer que se abre/cierra sobre el contenido.
+  mobileNavOpen = signal(false);
   unreadCount = signal(0);
   notifPanelOpen = signal(false);
   notifications = signal<AppNotification[]>([]);
@@ -63,12 +66,42 @@ export class LayoutComponent {
     }
   }
 
+  // Escape cierra el drawer móvil y el panel de notificaciones.
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.mobileNavOpen.set(false);
+    this.notifPanelOpen.set(false);
+  }
+
+  // Si el usuario rota el teléfono o agranda la ventana hasta modo escritorio,
+  // el drawer no debe quedar "abierto" en segundo plano.
+  @HostListener('window:resize')
+  onResize(): void {
+    if (!this.isMobile()) {
+      this.mobileNavOpen.set(false);
+    }
+  }
+
+  // Debe coincidir con el breakpoint de layout.component.scss (max-width: 768px).
+  private isMobile(): boolean {
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
   visibleNavItems(): NavItem[] {
     return this.navItems.filter((item) => !item.permission || this.auth.hasPermission(item.permission));
   }
 
+  // En móvil abre/cierra el drawer; en escritorio colapsa/expande el menú.
   toggleSidebar(): void {
-    this.sidebarCollapsed.update((v) => !v);
+    if (this.isMobile()) {
+      this.mobileNavOpen.update((v) => !v);
+    } else {
+      this.sidebarCollapsed.update((v) => !v);
+    }
+  }
+
+  closeMobileNav(): void {
+    this.mobileNavOpen.set(false);
   }
 
   refreshUnread(): void {
