@@ -5,13 +5,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CasesService } from '../../../core/services/cases.service';
 import { CatalogsService } from '../../../core/services/catalogs.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SentenceCaseDirective } from '../../../core/directives/sentence-case.directive';
 import { NotificationBannerService } from '../../../core/services/notification-banner.service';
 import { Area, CaseHistoryEntry, CaseItem, Responsible } from '../../../core/models/domain.models';
 
 @Component({
   selector: 'app-case-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SentenceCaseDirective],
   templateUrl: './case-detail.component.html',
   styleUrl: './case-detail.component.scss',
 })

@@ -11,6 +11,13 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding()),
     provideAnimations(),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    // Orden importante: errorInterceptor va PRIMERO (más externo) para que
+    // authInterceptor quede más cerca del backend y pueda intentar renovar
+    // la sesión (refresh token) ANTES de que error.interceptor muestre el
+    // aviso "Tu sesión ha expirado". Con el orden anterior
+    // ([authInterceptor, errorInterceptor]) ese aviso aparecía en cada
+    // renovación silenciosa del access token (cada 15 min de uso normal),
+    // aunque la sesión seguía activa y la petición se reintentaba sola.
+    provideHttpClient(withInterceptors([errorInterceptor, authInterceptor])),
   ],
 };

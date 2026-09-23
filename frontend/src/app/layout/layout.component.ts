@@ -1,10 +1,11 @@
-import { Component, ElementRef, HostListener, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationBannerService } from '../core/services/notification-banner.service';
 import { NotificationsHttpService } from '../core/services/admin.services';
 import { ThemeService } from '../core/services/theme.service';
+import { IdleSessionService } from '../core/services/idle-session.service';
 import { AppFooterComponent } from '../shared/components/app-footer/app-footer.component';
 import { AppNotification } from '../core/models/domain.models';
 
@@ -22,7 +23,7 @@ interface NavItem {
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnDestroy {
   // Escritorio: menú lateral expandido (íconos + texto) o colapsado (solo íconos).
   sidebarCollapsed = signal(false);
   // Móvil: el menú es un drawer que se abre/cierra sobre el contenido.
@@ -48,10 +49,19 @@ export class LayoutComponent {
     public banner: NotificationBannerService,
     public theme: ThemeService,
     private notificationsHttp: NotificationsHttpService,
+    private idle: IdleSessionService,
     private router: Router,
     private elementRef: ElementRef<HTMLElement>,
   ) {
     this.refreshUnread();
+    // LayoutComponent solo existe mientras hay una sesión iniciada (está
+    // detrás de authGuard en app.routes.ts), así que este es el lugar
+    // correcto para arrancar el temporizador de cierre por inactividad.
+    this.idle.start();
+  }
+
+  ngOnDestroy(): void {
+    this.idle.stop();
   }
 
   // Cierra el panel de notificaciones al hacer clic en cualquier parte del
@@ -146,6 +156,7 @@ export class LayoutComponent {
   }
 
   logout(): void {
+    this.idle.stop();
     this.auth.logout().subscribe({
       next: () => this.router.navigate(['/login']),
       error: () => this.router.navigate(['/login']),

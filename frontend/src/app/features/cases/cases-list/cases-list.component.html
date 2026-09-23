@@ -8,7 +8,14 @@
 
 <div class="drilldown-banner" *ngIf="drillDownLabel() as label">
   <span>🔎 Filtrado desde el dashboard: <strong>{{ label }}</strong></span>
-  <button class="btn btn-outline btn-sm" (click)="clearDrillDownFilters()">Quitar filtros</button>
+  <button class="btn btn-outline btn-sm" (click)="clearFilters()">Quitar filtros</button>
+</div>
+
+<!-- Vista por defecto: solo los casos de hoy. Cualquier filtro de fechas, área,
+     estado, prioridad o búsqueda levanta esta restricción para consultar el histórico. -->
+<div class="scope-banner" *ngIf="todayOnly()">
+  📅 Mostrando solo los casos de <strong>hoy</strong>. Para consultar el histórico aplica un filtro:
+  fechas, área, estado, prioridad o búsqueda.
 </div>
 
 <div class="filters-bar">
@@ -16,7 +23,7 @@
     type="text"
     placeholder="Buscar por número, descripción, usuario o responsable..."
     [(ngModel)]="filters.search"
-    (ngModelChange)="onSearchChange()"
+    (ngModelChange)="onSearchInput()"
   />
 
   <select *ngIf="!fixedType" [(ngModel)]="filters.type" (ngModelChange)="onSearchChange()">
@@ -40,6 +47,25 @@
     <option value="ALTA">Alta</option>
     <option value="CRITICA">Crítica</option>
   </select>
+
+  <select [(ngModel)]="filters.areaId" (ngModelChange)="onSearchChange()">
+    <option value="">Todas las áreas</option>
+    <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
+  </select>
+
+  <label class="date-field">
+    <span>Desde</span>
+    <input type="date" [(ngModel)]="dateFrom" [attr.max]="dateTo || null" (ngModelChange)="onDateChange()" />
+  </label>
+
+  <label class="date-field">
+    <span>Hasta</span>
+    <input type="date" [(ngModel)]="dateTo" [attr.min]="dateFrom || null" (ngModelChange)="onDateChange()" />
+  </label>
+
+  <button class="btn btn-outline btn-sm clear-btn" type="button" *ngIf="!todayOnly()" (click)="clearFilters()">
+    Limpiar filtros
+  </button>
 </div>
 
 <!--
@@ -87,7 +113,10 @@
     </tbody>
   </table>
 
-  <div class="empty-state" *ngIf="!loading() && items().length === 0">
+  <div class="empty-state" *ngIf="!loading() && items().length === 0 && todayOnly()">
+    Hoy todavía no hay casos registrados. Usa los filtros para consultar el histórico.
+  </div>
+  <div class="empty-state" *ngIf="!loading() && items().length === 0 && !todayOnly()">
     No existen resultados para los filtros seleccionados.
   </div>
 

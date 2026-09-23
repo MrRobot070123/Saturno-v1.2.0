@@ -1,11 +1,12 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CaseFilters, CasesService } from '../../../core/services/cases.service';
 import { CatalogsService } from '../../../core/services/catalogs.service';
-import { CaseItem } from '../../../core/models/domain.models';
+import { Area, CaseItem } from '../../../core/models/domain.models';
 import { AuthService } from '../../../core/services/auth.service';
+import { dayEndIso, dayStartIso, todayCO } from '../../../core/utils/date-range.util';
 
 @Component({
   selector: 'app-cases-list',
@@ -14,7 +15,7 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './cases-list.component.html',
   styleUrl: './cases-list.component.scss',
 })
-export class CasesListComponent implements OnInit {
+export class CasesListComponent implements OnInit, OnDestroy {
   loading = signal(true);
   items = signal<CaseItem[]>([]);
   total = signal(0);
@@ -24,11 +25,27 @@ export class CasesListComponent implements OnInit {
   fixedType: string | null = null;
   drillDownLabel = signal<string | null>(null);
 
+  // Filtro por área (todas, incluidas las inactivas: el histórico las necesita)
+  // y por fechas (YYYY-MM-DD, las que muestran los <input type="date">).
+  areas = signal<Area[]>([]);
+  dateFrom = '';
+  dateTo = '';
+
+  // true = la lista está mostrando SOLO los casos de hoy (no hay ningún filtro
+  // que lo levante). Se recalcula en cada carga.
+  todayOnly = signal(false);
+
+  // true cuando se llegó con filtros en la URL (drill-down desde el dashboard):
+  // en ese caso se respeta exactamente ese filtro y no se aplica "solo hoy".
+  private hasUrlScope = false;
+  private searchTimer?: ReturnType<typeof setTimeout>;
+
   filters: CaseFilters = {
     search: '',
     type: '',
     status: '',
     priority: '',
+    areaId: '',
     sortBy: 'createdAt',
     sortDir: 'desc',
   };
@@ -45,9 +62,12 @@ export class CasesListComponent implements OnInit {
     this.fixedType = (this.route.snapshot.data['fixedType'] as string) ?? null;
     if (this.fixedType) this.filters.type = this.fixedType;
 
+    this.catalogsService.getAreas(false).subscribe((areas) => this.areas.set(areas));
+
     // Filtros que llegan por la URL (ej. al hacer clic en una tarjeta o
     // gráfico del dashboard): se aplican antes de la primera carga.
     const qp = this.route.snapshot.queryParamMap;
+    this.hasUrlScope = qp.keys.length > 0;
     if (!this.fixedType && qp.get('type')) this.filters.type = qp.get('type')!;
     if (qp.get('status')) this.filters.status = qp.get('status')!;
     if (qp.get('priority')) this.filters.priority = qp.get('priority')!;
@@ -60,11 +80,19 @@ export class CasesListComponent implements OnInit {
     if (qp.get('to')) this.filters.to = qp.get('to')!;
     if (qp.get('search')) this.filters.search = qp.get('search')!;
 
+    // Muestra las fechas del drill-down en los selectores de fecha.
+    if (this.filters.from) this.dateFrom = this.filters.from.slice(0, 10);
+    if (this.filters.to) this.dateTo = this.filters.to.slice(0, 10);
+
     if (qp.get('areaId') || qp.get('locationId') || qp.get('from') || qp.get('subtypeId') || qp.get('room')) {
       this.buildDrillDownLabel();
     }
 
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.searchTimer);
   }
 
   // Arma un texto legible como "Área: Mantenimiento · 01/09/2026 – 09/09/2026"
@@ -121,23 +149,68 @@ export class CasesListComponent implements OnInit {
     });
   }
 
-  clearDrillDownFilters(): void {
-    this.filters.areaId = undefined;
-    this.filters.locationId = undefined;
-    this.filters.room = undefined;
-    this.filters.subtypeId = undefined;
-    this.filters.from = undefined;
-    this.filters.to = undefined;
+  // Quita TODOS los filtros y vuelve a la vista por defecto (solo casos de hoy).
+  clearFilters(): void {
+    this.filters = {
+      ...this.filters,
+      search: '',
+      type: this.fixedType ?? '',
+      status: '',
+      priority: '',
+      areaId: '',
+      locationId: undefined,
+      responsibleId: undefined,
+      subtypeId: undefined,
+      room: undefined,
+      from: undefined,
+      to: undefined,
+    };
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.hasUrlScope = false;
     this.drillDownLabel.set(null);
     this.router.navigate([], { relativeTo: this.route, queryParams: {} });
     this.page.set(1);
     this.load();
   }
 
+  // ¿Hay algún filtro que levante la restricción de "solo hoy"? El tipo
+  // (Queja/Solicitud) no cuenta: por sí solo no acota el histórico.
+  private hasScopeFilter(): boolean {
+    const f = this.filters;
+    return (
+      this.hasUrlScope ||
+      !!(
+        f.search?.trim() ||
+        f.areaId ||
+        f.status ||
+        f.priority ||
+        f.from ||
+        f.to ||
+        f.locationId ||
+        f.responsibleId ||
+        f.subtypeId ||
+        f.room
+      )
+    );
+  }
+
+  // Filtros que realmente se envían al backend: si no hay ningún filtro de
+  // alcance, se limita a los casos de HOY (hora Colombia).
+  private effectiveFilters(): CaseFilters {
+    if (this.hasScopeFilter()) {
+      this.todayOnly.set(false);
+      return this.filters;
+    }
+    const today = todayCO();
+    this.todayOnly.set(true);
+    return { ...this.filters, from: dayStartIso(today), to: dayEndIso(today) };
+  }
+
   load(): void {
     this.loading.set(true);
     this.casesService
-      .list({ ...this.filters, page: this.page(), pageSize: this.pageSize })
+      .list({ ...this.effectiveFilters(), page: this.page(), pageSize: this.pageSize })
       .subscribe({
         next: (res) => {
           this.items.set(res.items);
@@ -149,9 +222,29 @@ export class CasesListComponent implements OnInit {
       });
   }
 
+  // Búsqueda por texto: espera 400 ms después de la última tecla para no
+  // lanzar una consulta (con búsqueda ILIKE en 4 campos) por cada letra.
+  onSearchInput(): void {
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.onSearchChange(), 400);
+  }
+
   onSearchChange(): void {
     this.page.set(1);
     this.load();
+  }
+
+  onDateChange(): void {
+    // Si la fecha inicial queda después de la final, se iguala la final.
+    if (this.dateFrom && this.dateTo && this.dateFrom > this.dateTo) {
+      this.dateTo = this.dateFrom;
+    }
+    this.filters.from = this.dateFrom ? dayStartIso(this.dateFrom) : undefined;
+    this.filters.to = this.dateTo ? dayEndIso(this.dateTo) : undefined;
+    // Las fechas elegidas a mano reemplazan a las que venían del dashboard.
+    this.hasUrlScope = false;
+    this.drillDownLabel.set(null);
+    this.onSearchChange();
   }
 
   sortBy(field: string): void {

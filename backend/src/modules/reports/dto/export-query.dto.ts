@@ -1,21 +1,32 @@
-import { IsIn, IsOptional } from 'class-validator';
-import { CaseQueryDto } from '../../cases/dto/case.dto';
+import { IsIn, IsISO8601, IsOptional, IsUUID } from 'class-validator';
 
-// El endpoint de exportación admite los mismos filtros que la lista de
-// casos, más el parámetro 'format'. Se declara aquí explícitamente porque
-// el ValidationPipe global usa forbidNonWhitelisted: true - cualquier campo
-// de la query string que no esté declarado en el DTO se rechaza, así que
-// 'format' necesita su propio DTO (extendiendo CaseQueryDto) en vez de
-// viajar "suelto" junto a los filtros de caso.
-export class ExportQueryDto extends CaseQueryDto {
+// Filtros de TODOS los reportes (vista previa y exportación).
+//
+// - from / to son OBLIGATORIOS: sin rango de fechas no se consulta. Así ningún
+//   reporte puede leer toda la tabla de casos de una sola vez.
+// - El ValidationPipe global usa forbidNonWhitelisted: true, por eso cada
+//   parámetro que el frontend envíe debe estar declarado aquí; de lo contrario
+//   la petición se rechaza con 400.
+// - El frontend envía las fechas con la hora de Colombia, por ejemplo
+//   "2026-09-21T00:00:00.000-05:00" (ISO 8601 con offset).
+export class ReportQueryDto {
+  @IsISO8601({}, { message: 'La fecha inicial (from) es obligatoria y debe tener formato ISO 8601' })
+  from: string;
+
+  @IsISO8601({}, { message: 'La fecha final (to) es obligatoria y debe tener formato ISO 8601' })
+  to: string;
+
   @IsOptional()
-  @IsIn(['csv', 'excel', 'pdf'])
-  format?: 'csv' | 'excel' | 'pdf';
+  @IsUUID()
+  areaId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  responsibleId?: string;
 }
 
-// Para los reportes que no aceptan filtros de caso (por área, por
-// responsable): solo necesitan el parámetro 'format'.
-export class SimpleExportQueryDto {
+// Exportación: los mismos filtros más el formato del archivo.
+export class ReportExportQueryDto extends ReportQueryDto {
   @IsOptional()
   @IsIn(['csv', 'excel', 'pdf'])
   format?: 'csv' | 'excel' | 'pdf';

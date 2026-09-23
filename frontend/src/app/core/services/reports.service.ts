@@ -4,6 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CaseFilters } from './cases.service';
 
+// Todos los reportes reciben filtros (from/to obligatorios en el backend;
+// areaId y responsibleId opcionales). Solo se envían los campos con valor,
+// porque el backend rechaza parámetros no declarados (forbidNonWhitelisted).
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
   private base = `${environment.apiUrl}/reports`;
@@ -28,12 +31,12 @@ export class ReportsService {
     return this.http.get<any[]>(`${this.base}/pending`, { params: this.buildParams(filters) });
   }
 
-  byArea(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/by-area`);
+  byArea(filters: CaseFilters): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/by-area`, { params: this.buildParams(filters) });
   }
 
-  byResponsible(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/by-responsible`);
+  byResponsible(filters: CaseFilters): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/by-responsible`, { params: this.buildParams(filters) });
   }
 
   resolutionTime(filters: CaseFilters): Observable<any[]> {

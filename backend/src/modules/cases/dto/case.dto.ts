@@ -6,6 +6,8 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
+  Min,
   MinLength,
 } from 'class-validator';
 import { CasePriority, CaseStatus, CaseType } from '@prisma/client';
@@ -100,11 +102,14 @@ export class ReopenCaseDto {
 export class CaseQueryDto {
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
   page = 1;
 
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(100)
   @Type(() => Number)
   pageSize = 20;
 

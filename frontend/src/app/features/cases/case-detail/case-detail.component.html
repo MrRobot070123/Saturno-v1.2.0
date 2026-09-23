@@ -82,7 +82,7 @@
     <h4>Resolver caso</h4>
     <div class="form-field">
       <label>Observación de solución (obligatoria)</label>
-      <textarea [(ngModel)]="resolutionNote" rows="3"></textarea>
+      <textarea [(ngModel)]="resolutionNote" appSentenceCase rows="3"></textarea>
     </div>
     <button class="btn btn-primary" (click)="close()" [disabled]="actionLoading()">Marcar como Resuelto</button>
   </div>
@@ -91,7 +91,7 @@
     <h4>Reabrir caso</h4>
     <div class="form-field">
       <label>Motivo de la reapertura</label>
-      <textarea [(ngModel)]="reopenReason" rows="3"></textarea>
+      <textarea [(ngModel)]="reopenReason" appSentenceCase rows="3"></textarea>
     </div>
     <button class="btn btn-outline" (click)="reopen()" [disabled]="actionLoading()">Reabrir</button>
   </div>

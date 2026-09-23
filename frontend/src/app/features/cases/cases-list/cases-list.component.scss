@@ -10,9 +10,22 @@
   margin-bottom: 16px;
 }
 
+// Aviso de "solo casos de hoy". Usa variables del tema (no colores fijos)
+// para verse bien tanto en claro como en oscuro.
+.scope-banner {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
 .filters-bar {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -31,6 +44,27 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+// Selector de fecha con su etiqueta encima (Desde / Hasta).
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.filters-bar .date-field input {
+  flex: none;
+  min-width: 0;
+  width: 100%;
+}
+
+// El calendario nativo del navegador respeta el tema oscuro.
+:host-context([data-theme='dark']) input[type='date'] {
+  color-scheme: dark;
 }
 
 .truncate {
@@ -56,15 +90,21 @@
     gap: 10px;
   }
 
-  // Búsqueda a todo el ancho; los selectores de a dos por fila.
+  // Búsqueda a todo el ancho; selectores y fechas de a dos por fila.
   .filters-bar input {
     flex: 1 1 100%;
     min-width: 0;
   }
 
-  .filters-bar select {
+  .filters-bar select,
+  .date-field {
     flex: 1 1 calc(50% - 5px);
     min-width: 0;
+  }
+
+  .clear-btn {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
   // En la tarjeta la descripción puede ocupar varias líneas (en la tabla de
