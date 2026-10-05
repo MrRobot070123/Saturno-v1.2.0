@@ -31,7 +31,7 @@ services:
       JWT_REFRESH_EXPIRES_IN: 7d
       PORT: 3000
       NODE_ENV: production
-      FRONTEND_URL: http://localhost:8081
+      FRONTEND_URL: http://localhost:4200
       DEFAULT_HOTEL_CODE: HTL-DEMO-01
     ports:
       - '3000:3000'

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CatalogsService } from '../../core/services/catalogs.service';
 import { NotificationBannerService } from '../../core/services/notification-banner.service';
-import { Area, CaseSubtype, CaseType, Location, Responsible } from '../../core/models/domain.models';
+import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } from '../../core/models/domain.models';
 
 @Component({
   selector: 'app-settings',
@@ -61,6 +61,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible } from '../../core/m
           </select>
           <div style="display:flex; gap:8px">
             <input placeholder="Nombre del responsable" [(ngModel)]="newResponsible" />
+            <input placeholder="WhatsApp (ej. 573001234567)" [(ngModel)]="newResponsiblePhone" style="max-width:200px" />
             <button class="btn btn-primary btn-sm" (click)="addResponsible()" [disabled]="!selectedAreaForResponsible">
               Agregar
             </button>
@@ -71,6 +72,25 @@ import { Area, CaseSubtype, CaseType, Location, Responsible } from '../../core/m
             {{ r.fullName }}
             <button class="btn btn-outline btn-sm" (click)="toggleResponsible(r)">
               {{ r.isActive ? 'Desactivar' : 'Activar' }}
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h4>Plataformas de reseñas</h4>
+        <p class="card-hint" style="margin-top:0">
+          Booking, Expedia, Google y otras plataformas desde donde se digitan reseñas de huéspedes.
+        </p>
+        <div class="add-row">
+          <input placeholder="Nueva plataforma (ej. Booking)" [(ngModel)]="newReviewPlatform" />
+          <button class="btn btn-primary btn-sm" (click)="addReviewPlatform()">Agregar</button>
+        </div>
+        <ul class="catalog-list">
+          <li *ngFor="let p of reviewPlatforms()">
+            {{ p.name }}
+            <button class="btn btn-outline btn-sm" (click)="toggleReviewPlatform(p)">
+              {{ p.isActive ? 'Desactivar' : 'Activar' }}
             </button>
           </li>
         </ul>
@@ -133,6 +153,9 @@ export class SettingsComponent {
   newArea = '';
   newResponsible = '';
   newSubtype = '';
+  newResponsiblePhone = '';
+  newReviewPlatform = '';
+  reviewPlatforms = signal<ReviewPlatform[]>([]);
   selectedAreaForResponsible = '';
   selectedAreaForSubtype = '';
   selectedTypeForSubtype: CaseType = 'QUEJA';
@@ -140,6 +163,7 @@ export class SettingsComponent {
   constructor(private catalogsService: CatalogsService, private banner: NotificationBannerService) {
     this.loadLocations();
     this.loadAreas();
+    this.loadReviewPlatforms();
   }
 
   loadLocations(): void {
@@ -196,11 +220,14 @@ export class SettingsComponent {
 
   addResponsible(): void {
     if (!this.newResponsible.trim() || !this.selectedAreaForResponsible) return;
-    this.catalogsService.createResponsible(this.selectedAreaForResponsible, this.newResponsible.trim()).subscribe(() => {
-      this.newResponsible = '';
-      this.banner.showSuccess('Responsable agregado.');
-      this.loadResponsibles();
-    });
+    this.catalogsService
+      .createResponsible(this.selectedAreaForResponsible, this.newResponsible.trim(), this.newResponsiblePhone.trim() || undefined)
+      .subscribe(() => {
+        this.newResponsible = '';
+        this.newResponsiblePhone = '';
+        this.banner.showSuccess('Responsable agregado.');
+        this.loadResponsibles();
+      });
   }
 
   toggleResponsible(r: Responsible): void {
@@ -221,4 +248,22 @@ export class SettingsComponent {
   toggleSubtype(s: CaseSubtype): void {
     this.catalogsService.updateSubtype(s.id, { isActive: !s.isActive }).subscribe(() => this.loadSubtypesForSelection());
   }
+
+    loadReviewPlatforms(): void {
+    this.catalogsService.getReviewPlatforms(false).subscribe((p) => this.reviewPlatforms.set(p));
+  }
+
+  addReviewPlatform(): void {
+    if (!this.newReviewPlatform.trim()) return;
+    this.catalogsService.createReviewPlatform(this.newReviewPlatform.trim()).subscribe(() => {
+      this.newReviewPlatform = '';
+      this.banner.showSuccess('Plataforma agregada.');
+      this.loadReviewPlatforms();
+    });
+  }
+
+  toggleReviewPlatform(p: ReviewPlatform): void {
+    this.catalogsService.updateReviewPlatform(p.id, { isActive: !p.isActive }).subscribe(() => this.loadReviewPlatforms());
+  }
+
 }

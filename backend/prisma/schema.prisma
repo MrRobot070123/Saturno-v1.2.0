@@ -42,6 +42,8 @@ model Hotel {
   users         User[]
   cases         Case[]
   caseSequences CaseSequence[]
+  reviewPlatforms ReviewPlatform[]
+  reviews         Review[]
 
   @@map("hotels")
 }
@@ -113,6 +115,8 @@ model User {
   auditLogs          AuditLog[]
   notifications      Notification[]
   assignmentsCreated CaseAssignment[]    @relation("AssignedBy")
+  reviewsCreated         Review[]        @relation("ReviewsCreatedBy")
+  reviewFindingsReviewed ReviewFinding[] @relation("ReviewFindingsReviewedBy")
 
   @@index([hotelId])
   @@map("users")
@@ -167,6 +171,7 @@ model Location {
   createdAt DateTime @default(now())
 
   cases Case[]
+  reviews Review[]
 
   @@unique([hotelId, name])
   @@map("locations")
@@ -185,6 +190,7 @@ model Area {
   responsibles      Responsible[]
   caseAssignments   CaseAssignment[]
   subtypes          CaseSubtype[]
+  reviewFindings ReviewFinding[]
 
   @@unique([hotelId, name])
   @@map("areas")
@@ -197,6 +203,7 @@ model Responsible {
   areaId    String
   area      Area     @relation(fields: [areaId], references: [id])
   fullName  String
+  phone     String?
   userId    String? // si el responsable también es un usuario del sistema
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -269,6 +276,7 @@ model CaseSubtype {
   createdAt DateTime @default(now())
 
   cases Case[]
+  reviewFindings ReviewFinding[]
 
   @@unique([areaId, type, name])
   @@index([areaId, type])
@@ -294,6 +302,8 @@ model Case {
   priority       CasePriority @default(MEDIA)
   status         CaseStatus   @default(SIN_RESOLVER)
   resolutionNote String?
+  reviewFindingId String?        @unique
+  reviewFinding   ReviewFinding? @relation(fields: [reviewFindingId], references: [id])
 
   createdById String
   createdBy   User   @relation("CasesCreatedBy", fields: [createdById], references: [id])
@@ -414,4 +424,85 @@ model Notification {
 
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+// ----------------------------------------------------------------------------
+// RESEÑAS EXTERNAS (Booking/Expedia/Google) — v2.1.0
+// ----------------------------------------------------------------------------
+
+model ReviewPlatform {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  name      String   // "Booking", "Expedia", "Google", "TripAdvisor", ...
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  reviews Review[]
+
+  @@unique([hotelId, name])
+  @@map("review_platforms")
+}
+
+enum ReviewFindingStatus {
+  MATCHED           // la IA lo asoció a un CaseSubtype existente
+  PENDING_APPROVAL  // la IA propone un tipo de queja nuevo, sin crear aún
+  APPROVED          // el pendiente fue aprobado -> ya generó un CaseSubtype
+  REJECTED          // el pendiente fue descartado por el administrador
+}
+
+// Una reseña puede contener varios problemas de distintas áreas (ej. "el aire
+// fue un desastre... la comida... el wifi"), por eso no reutiliza Case
+// directamente: Review = la reseña, ReviewFinding = cada problema detectado.
+model Review {
+  id            String         @id @default(uuid())
+  hotelId       String
+  hotel         Hotel          @relation(fields: [hotelId], references: [id])
+  stayDate      DateTime       // fecha de estancia del huésped (no la de digitación)
+  locationId    String
+  location      Location       @relation(fields: [locationId], references: [id])
+  room          String?        // misma lógica condicional que Case.room (torres)
+  guestName     String         // nombre de la persona o empresa
+  platformId    String
+  platform      ReviewPlatform @relation(fields: [platformId], references: [id])
+  rawText       String         // observación tal como la dejó el huésped
+  aiProcessedAt DateTime?      // null mientras la IA no ha corrido / está corriendo
+  aiError       String?        // si la llamada a la IA falló, para reintentar
+
+  createdById String
+  createdBy   User     @relation("ReviewsCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  findings ReviewFinding[]
+
+  @@index([hotelId, stayDate])
+  @@index([locationId])
+  @@index([platformId])
+  @@map("reviews")
+}
+
+model ReviewFinding {
+  id            String              @id @default(uuid())
+  reviewId      String
+  review        Review              @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  excerpt       String              // fragmento del texto que sustenta la clasificación
+  areaId        String?             // null si aún no se resuelve (pendiente)
+  area          Area?               @relation(fields: [areaId], references: [id])
+  subtypeId     String?             // llena CaseSubtype existente si hubo match
+  subtype       CaseSubtype?        @relation(fields: [subtypeId], references: [id])
+  suggestedName String?             // nombre propuesto por la IA cuando no hay match
+  suggestedArea String?             // área que la IA sugiere para el tipo nuevo
+  confidence    Float               // 0-1, score que devuelve el modelo
+  status        ReviewFindingStatus @default(MATCHED)
+  reviewedById  String?             // quién aprobó/rechazó el pendiente
+  reviewedBy    User?               @relation("ReviewFindingsReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime            @default(now())
+
+  generatedCase Case? // caso interno creado a partir de este hallazgo (opcional)
+
+  @@index([reviewId])
+  @@index([status])
+  @@map("review_findings")
 }

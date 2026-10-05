@@ -57,6 +57,22 @@ export const routes: Routes = [
         canActivate: [permissionGuard('report:view')],
       },
       {
+        path: 'resenas',
+        loadComponent: () =>
+          import('./features/reviews/reviews-list/reviews-list.component').then(
+            (m) => m.ReviewsListComponent,
+          ),
+        canActivate: [permissionGuard('review:view')],
+      },
+      {
+        path: 'resenas/nueva',
+        loadComponent: () =>
+          import('./features/reviews/review-form/review-form.component').then(
+            (m) => m.ReviewFormComponent,
+          ),
+        canActivate: [permissionGuard('review:create')],
+      },
+      {
         path: 'usuarios',
         loadComponent: () =>
           import('./features/users/users.component').then((m) => m.UsersComponent),

@@ -19,6 +19,10 @@ const PERMISSIONS = [
   { code: 'report:view', description: 'Generar y consultar reportes' },
   { code: 'user:manage', description: 'Administrar usuarios y roles' },
   { code: 'catalog:manage', description: 'Administrar catálogos (áreas, ubicaciones, responsables)' },
+  { code: 'review:create', description: 'Digitar reseñas externas' },
+  { code: 'review:view', description: 'Consultar reseñas y sus hallazgos' },
+  { code: 'review:classification-approve', description: 'Aprobar/rechazar tipos de queja sugeridos por IA' },
+  { code: 'review:convert-to-case', description: 'Crear un caso interno desde un hallazgo de reseña' },
   { code: 'audit:view', description: 'Consultar auditoría del sistema' },
 ];
 
@@ -35,6 +39,9 @@ const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'case:reopen',
     'dashboard:view',
     'report:view',
+    'review:create',
+    'review:view',
+    'review:convert-to-case',
   ],
   OPERATIVO: [
     'case:view',
@@ -45,6 +52,9 @@ const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'case:close',
     'case:reopen',
     'dashboard:view',
+    'review:create',
+    'review:view',
+    'review:convert-to-case',
   ],
 };
 
