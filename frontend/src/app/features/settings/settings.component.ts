@@ -20,19 +20,24 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     </p>
 
     <!--
-      Las 5 tarjetas comparten la MISMA estructura y la MISMA altura
-      (.card = columna flex de alto fijo, ver estilos): título + ayuda
-      opcional + formulario arriba (tamaño natural), y la lista de
-      elementos abajo ocupando el resto del espacio con su propio scroll
-      (.catalog-list { flex:1; overflow-y:auto }). Así ninguna tarjeta
-      "crece" más que las demás aunque tenga más campos o más elementos -
-      la lista se desplaza en vez de estirar la tarjeta, y las 5 quedan
-      alineadas en la cuadrícula sin importar cuántos ítems tenga cada una.
+      Las 5 tarjetas comparten la MISMA estructura: título + ayuda opcional +
+      formulario arriba (tamaño natural, .card-top), y la lista de elementos
+      abajo (.catalog-list).
 
-      Por la misma razón, el botón "Agregar" de cada tarjeta siempre va en
-      su propia línea, nunca pegado a un input: con eso el bloque de
-      formulario tiene la misma lógica visual en las 5 tarjetas (campo(s)
-      arriba, botón debajo), en vez de que unas lo tengan inline y otras no.
+      Vista PC (>= 769px): cuadrícula FIJA de 3 columnas iguales
+      (grid-template-columns: repeat(3, 1fr), no auto-fit), con las 5
+      tarjetas en el mismo orden del markup, así que el propio flujo del
+      grid arma 2 líneas bien organizadas:
+        fila 1 → Ubicaciones · Áreas · Responsables
+        fila 2 → Tipos de queja/solicitud · Plataformas de reseñas
+      Ahí las 5 tarjetas tienen ancho y alto IGUALES (.card con altura fija
+      + la lista con scroll interno), sin importar cuántos ítems tenga cada
+      una ni en qué fila esté.
+
+      Vista móvil (< 769px): una sola columna, en cascada, con el alto
+      NATURAL de cada tarjeta (sin altura fija ni scroll interno) - cada
+      una ocupa lo que necesite y la página fluye completa, igual que se
+      veía antes de introducir la altura fija.
 
       Orden: primero los catálogos que alimentan el formulario de Casos, en
       el mismo orden en que se eligen al crear uno (ubicación → área →
@@ -199,20 +204,18 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
   styles: [`
     .settings-intro { color: var(--color-text-muted); max-width: 900px; }
 
-    // Las 5 tarjetas se estiran a la misma altura de fila (comportamiento
-    // por defecto de CSS grid), y cada una fija su propia altura total
-    // (.card) además, para que se vean iguales también entre distintas
-    // filas cuando el ancho de pantalla solo deja 2 o 3 por fila.
+    // Mobile-first: una sola columna, en cascada. El alto de cada tarjeta
+    // es el natural (sin fijar), así que cada una ocupa lo que necesite y
+    // la página fluye normal - igual que se veía antes de fijar alturas.
     .settings-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: 1fr;
       gap: 16px;
     }
 
     .card {
       display: flex;
       flex-direction: column;
-      height: 520px;
       padding: 20px;
     }
 
@@ -245,12 +248,10 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     // así el bloque de formulario luce igual en todas).
     .add-btn { align-self: flex-start; margin-top: 2px; }
 
-    // Lista de elementos: ocupa el resto de la tarjeta y se desplaza sola
-    // cuando hay más ítems de los que caben, en vez de estirar la tarjeta.
+    // Lista de elementos: en móvil fluye con alto natural (ver media query
+    // de abajo para el scroll interno, que solo aplica en PC donde la
+    // tarjeta tiene alto fijo).
     .catalog-list {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
       list-style: none;
       padding: 0;
       margin: 14px 0 0;
@@ -263,11 +264,18 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     .catalog-list li span { overflow-wrap: anywhere; }
     .catalog-list-empty { color: var(--color-text-muted); border-bottom: none; font-size: 13px; }
 
-    @media (max-width: 600px) {
-      .settings-grid { grid-template-columns: 1fr; }
-      .card { height: 440px; }
-      .field-row { flex-direction: column; }
-      .add-btn { align-self: stretch; justify-content: center; }
+    // Vista PC: cuadrícula FIJA de 3 columnas (no auto-fit) para que las 5
+    // tarjetas queden organizadas en 2 líneas bien definidas - fila 1:
+    // Ubicaciones/Áreas/Responsables, fila 2: Tipos de queja-solicitud/
+    // Plataformas de reseñas (esta última deja la 3ra columna vacía, no se
+    // estira). Todas con el mismo ancho (1fr c/u) y el mismo alto fijo, así
+    // que lucen idénticas en tamaño sin importar cuántos ítems tenga cada
+    // lista; el exceso de ítems se desplaza dentro de la tarjeta en vez de
+    // estirarla.
+    @media (min-width: 769px) {
+      .settings-grid { grid-template-columns: repeat(3, 1fr); }
+      .card { height: 480px; }
+      .catalog-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
     }
   `],
 })
