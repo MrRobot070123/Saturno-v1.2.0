@@ -11,7 +11,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
   imports: [CommonModule, FormsModule],
   template: `
     <h2>Configuración de catálogos</h2>
-    <p style="color:var(--color-text-muted)">
+    <p class="settings-intro">
       Administra las opciones que verán los usuarios al crear una Queja o Solicitud: en qué
       <strong>ubicación</strong> ocurrió, a qué <strong>área</strong> del hotel corresponde, qué
       <strong>tipo</strong> de queja/solicitud es, y quién es el <strong>responsable</strong> dentro de esa
@@ -19,12 +19,25 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       casos que ya lo usaron.
     </p>
 
+    <!--
+      Orden: primero los catálogos que alimentan el formulario de Casos
+      (ubicación → área → responsable → tipo de queja/solicitud, el mismo
+      orden en que se eligen al crear un caso), y al final, aparte, el único
+      catálogo que pertenece al módulo de Reseñas (no a Casos).
+      Cada campo usa .form-field (etiqueta arriba, igual que el resto de la
+      app) en vez de solo un placeholder: así ningún campo depende de tener
+      espacio de sobra para no verse cortado, y en móvil cada tarjeta ocupa
+      todo el ancho sin que ningún campo se salga de su tarjeta.
+    -->
     <div class="settings-grid">
       <div class="card">
         <h4>Ubicaciones</h4>
-        <div class="add-row">
-          <input placeholder="Nueva ubicación" [(ngModel)]="newLocation" />
-          <button class="btn btn-primary btn-sm" (click)="addLocation()">Agregar</button>
+        <div class="form-field">
+          <label>Nueva ubicación</label>
+          <div class="field-row">
+            <input placeholder="Ej. Torre Caimán" [(ngModel)]="newLocation" />
+            <button class="btn btn-primary btn-sm" (click)="addLocation()">Agregar</button>
+          </div>
         </div>
         <ul class="catalog-list">
           <li *ngFor="let l of locations()">
@@ -38,9 +51,12 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
 
       <div class="card">
         <h4>Áreas</h4>
-        <div class="add-row">
-          <input placeholder="Nueva área" [(ngModel)]="newArea" />
-          <button class="btn btn-primary btn-sm" (click)="addArea()">Agregar</button>
+        <div class="form-field">
+          <label>Nueva área</label>
+          <div class="field-row">
+            <input placeholder="Ej. Mantenimiento" [(ngModel)]="newArea" />
+            <button class="btn btn-primary btn-sm" (click)="addArea()">Agregar</button>
+          </div>
         </div>
         <ul class="catalog-list">
           <li *ngFor="let a of areas()">
@@ -54,19 +70,30 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
 
       <div class="card">
         <h4>Responsables</h4>
-        <div class="add-row add-row-stacked">
+        <p class="card-hint">A quién se le puede asignar un caso dentro de cada área.</p>
+
+        <div class="form-field">
+          <label>Área</label>
           <select [(ngModel)]="selectedAreaForResponsible" (ngModelChange)="loadResponsibles()">
             <option value="">Selecciona un área</option>
             <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
           </select>
-          <div class="add-row-fields">
-            <input placeholder="Nombre del responsable" [(ngModel)]="newResponsible" class="field-name" />
-            <input placeholder="WhatsApp (ej. 573001234567)" [(ngModel)]="newResponsiblePhone" class="field-phone" />
-            <button class="btn btn-primary btn-sm" (click)="addResponsible()" [disabled]="!selectedAreaForResponsible">
-              Agregar
-            </button>
+        </div>
+
+        <div class="field-row">
+          <div class="form-field">
+            <label>Nombre del responsable</label>
+            <input placeholder="Ej. Juan Pérez" [(ngModel)]="newResponsible" />
+          </div>
+          <div class="form-field">
+            <label>WhatsApp (opcional)</label>
+            <input placeholder="Ej. 573001234567" [(ngModel)]="newResponsiblePhone" />
           </div>
         </div>
+        <button class="btn btn-primary btn-sm" (click)="addResponsible()" [disabled]="!selectedAreaForResponsible">
+          Agregar responsable
+        </button>
+
         <ul class="catalog-list">
           <li *ngFor="let r of responsibles()">
             {{ r.fullName }}
@@ -74,17 +101,71 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
               {{ r.isActive ? 'Desactivar' : 'Activar' }}
             </button>
           </li>
+          <li *ngIf="selectedAreaForResponsible && responsibles().length === 0" class="catalog-list-empty">
+            Sin responsables registrados todavía para esta área.
+          </li>
         </ul>
       </div>
 
       <div class="card">
-        <h4>Plataformas de reseñas</h4>
-        <p class="card-hint" style="margin-top:0">
-          Booking, Expedia, Google y otras plataformas desde donde se digitan reseñas de huéspedes.
+        <h4>Tipos de queja/solicitud</h4>
+        <p class="card-hint">
+          Qué opciones aparecen al elegir un área en el formulario de casos (ej. área "Sistemas" + "Queja" →
+          "Conexión a internet").
         </p>
-        <div class="add-row">
-          <input placeholder="Nueva plataforma (ej. Booking)" [(ngModel)]="newReviewPlatform" />
-          <button class="btn btn-primary btn-sm" (click)="addReviewPlatform()">Agregar</button>
+
+        <div class="field-row">
+          <div class="form-field">
+            <label>Área</label>
+            <select [(ngModel)]="selectedAreaForSubtype" (ngModelChange)="loadSubtypesForSelection()">
+              <option value="">Selecciona un área</option>
+              <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Tipo de caso</label>
+            <select [(ngModel)]="selectedTypeForSubtype" (ngModelChange)="loadSubtypesForSelection()">
+              <option value="QUEJA">Queja</option>
+              <option value="SOLICITUD">Solicitud</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Nombre del tipo</label>
+          <div class="field-row">
+            <input placeholder="Ej. Conexión a internet" [(ngModel)]="newSubtype" />
+            <button class="btn btn-primary btn-sm" (click)="addSubtype()" [disabled]="!selectedAreaForSubtype">
+              Agregar
+            </button>
+          </div>
+        </div>
+
+        <ul class="catalog-list">
+          <li *ngFor="let s of subtypesForSelection()">
+            {{ s.name }}
+            <button class="btn btn-outline btn-sm" (click)="toggleSubtype(s)">
+              {{ s.isActive ? 'Desactivar' : 'Activar' }}
+            </button>
+          </li>
+          <li *ngIf="selectedAreaForSubtype && subtypesForSelection().length === 0" class="catalog-list-empty">
+            Sin tipos registrados todavía para esta combinación.
+          </li>
+        </ul>
+      </div>
+
+      <div class="card card-reviews">
+        <h4>Plataformas de reseñas</h4>
+        <p class="card-hint">
+          Booking, Expedia, Google y otras plataformas desde donde se digitan reseñas de huéspedes (módulo de
+          Reseñas, no afecta el formulario de Casos).
+        </p>
+        <div class="form-field">
+          <label>Nueva plataforma</label>
+          <div class="field-row">
+            <input placeholder="Ej. Booking" [(ngModel)]="newReviewPlatform" />
+            <button class="btn btn-primary btn-sm" (click)="addReviewPlatform()">Agregar</button>
+          </div>
         </div>
         <ul class="catalog-list">
           <li *ngFor="let p of reviewPlatforms()">
@@ -95,72 +176,56 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
           </li>
         </ul>
       </div>
-
-      <div class="card">
-        <h4>Tipos de queja/solicitud</h4>
-        <p class="card-hint" style="margin-top:0">
-          Define qué opciones aparecen al elegir un área en el formulario de casos (ej. área "Sistemas" +
-          "Queja" → "Conexión a internet").
-        </p>
-        <div class="add-row add-row-stacked">
-          <div class="add-row-fields">
-            <select [(ngModel)]="selectedAreaForSubtype" (ngModelChange)="loadSubtypesForSelection()" class="field-grow">
-              <option value="">Selecciona un área</option>
-              <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
-            </select>
-            <select [(ngModel)]="selectedTypeForSubtype" (ngModelChange)="loadSubtypesForSelection()">
-              <option value="QUEJA">Queja</option>
-              <option value="SOLICITUD">Solicitud</option>
-            </select>
-          </div>
-          <div class="add-row-fields">
-            <input placeholder="Nombre del tipo (ej. Conexión a internet)" [(ngModel)]="newSubtype" class="field-grow" />
-            <button class="btn btn-primary btn-sm" (click)="addSubtype()" [disabled]="!selectedAreaForSubtype">
-              Agregar
-            </button>
-          </div>
-        </div>
-        <ul class="catalog-list">
-          <li *ngFor="let s of subtypesForSelection()">
-            {{ s.name }}
-            <button class="btn btn-outline btn-sm" (click)="toggleSubtype(s)">
-              {{ s.isActive ? 'Desactivar' : 'Activar' }}
-            </button>
-          </li>
-          <li *ngIf="selectedAreaForSubtype && subtypesForSelection().length === 0" style="color:var(--color-text-muted); border-bottom:none">
-            Sin tipos registrados todavía para esta combinación.
-          </li>
-        </ul>
-      </div>
     </div>
   `,
   styles: [`
-    .settings-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; }
-    .add-row { display:flex; gap:8px; margin-bottom:12px; }
-    .add-row input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
-    .add-row select { padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
-    .catalog-list { list-style:none; padding:0; margin:0; max-height:320px; overflow-y:auto; }
-    .catalog-list li { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border); }
+    .settings-intro { color: var(--color-text-muted); max-width: 900px; }
 
-    // Filas con varios campos (Responsables: área + nombre + WhatsApp; Tipos:
-    // área + tipo, luego nombre). flex-wrap evita que un campo "empuje" el
-    // layout fuera de la tarjeta -el bug que rompía el diseño en pantallas
-    // angostas-, y min-width:0 permite que los inputs se encojan de verdad.
-    .add-row-stacked { flex-direction:column; align-items:stretch; gap:8px; }
-    .add-row-fields { display:flex; flex-wrap:wrap; gap:8px; }
-    .add-row-fields input,
-    .add-row-fields select { min-width:0; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
-    .add-row-fields .field-name { flex:2 1 160px; }
-    .add-row-fields .field-phone { flex:1 1 140px; }
-    .add-row-fields .field-grow { flex:1 1 160px; }
-    .add-row-fields button { flex:0 0 auto; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
 
-    @media (max-width: 480px) {
-      .add-row-fields .field-name,
-      .add-row-fields .field-phone,
-      .add-row-fields .field-grow,
-      .add-row-fields select,
-      .add-row-fields button { flex: 1 1 100%; }
+    // El catálogo de reseñas es conceptualmente aparte (no alimenta el
+    // formulario de Casos): ocupa el ancho completo al final para que no
+    // quede mezclado visualmente entre los catálogos de Casos.
+    .card-reviews { grid-column: 1 / -1; }
+
+    h4 { margin-bottom: 4px; }
+    .card-hint { margin: 0 0 14px; }
+
+    // Un campo con su etiqueta arriba (mismo patrón que el resto de la app:
+    // case-form, review-form). Nunca depende de espacio "de sobra" para no
+    // cortarse, por eso reemplaza los inputs que solo tenían placeholder.
+    .form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .form-field label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+    .form-field input,
+    .form-field select {
+      width: 100%; min-width: 0; padding: 9px 10px;
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      background: var(--color-surface); color: var(--color-text);
+    }
+
+    // Fila de 2 campos lado a lado (ej. Nombre + WhatsApp, o input + botón
+    // "Agregar"). flex-wrap es la pieza clave: si no caben uno junto al
+    // otro, bajan a su propia línea en vez de salirse de la tarjeta -el bug
+    // que rompía el diseño antes-, y cada input tiene min-width:0 para
+    // poder encogerse de verdad en vez de imponer un ancho mínimo propio.
+    .field-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field-row .form-field { flex: 1 1 160px; min-width: 0; margin-bottom: 0; }
+    .field-row input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
+    .field-row button { flex: 0 0 auto; }
+
+    .catalog-list { list-style: none; padding: 0; margin: 12px 0 0; max-height: 320px; overflow-y: auto; }
+    .catalog-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+    .catalog-list-empty { color: var(--color-text-muted); border-bottom: none; }
+
+    @media (max-width: 600px) {
+      .settings-grid { grid-template-columns: 1fr; }
+      .field-row { flex-direction: column; align-items: stretch; }
+      .field-row button { width: 100%; justify-content: center; }
     }
   `],
 })
@@ -270,7 +335,7 @@ export class SettingsComponent {
     this.catalogsService.updateSubtype(s.id, { isActive: !s.isActive }).subscribe(() => this.loadSubtypesForSelection());
   }
 
-    loadReviewPlatforms(): void {
+  loadReviewPlatforms(): void {
     this.catalogsService.getReviewPlatforms(false).subscribe((p) => this.reviewPlatforms.set(p));
   }
 
@@ -286,5 +351,4 @@ export class SettingsComponent {
   toggleReviewPlatform(p: ReviewPlatform): void {
     this.catalogsService.updateReviewPlatform(p.id, { isActive: !p.isActive }).subscribe(() => this.loadReviewPlatforms());
   }
-
 }
