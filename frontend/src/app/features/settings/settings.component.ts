@@ -54,14 +54,14 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
 
       <div class="card">
         <h4>Responsables</h4>
-        <div class="add-row" style="flex-direction:column; align-items:stretch; gap:8px">
+        <div class="add-row add-row-stacked">
           <select [(ngModel)]="selectedAreaForResponsible" (ngModelChange)="loadResponsibles()">
             <option value="">Selecciona un área</option>
             <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
           </select>
-          <div style="display:flex; gap:8px">
-            <input placeholder="Nombre del responsable" [(ngModel)]="newResponsible" />
-            <input placeholder="WhatsApp (ej. 573001234567)" [(ngModel)]="newResponsiblePhone" style="max-width:200px" />
+          <div class="add-row-fields">
+            <input placeholder="Nombre del responsable" [(ngModel)]="newResponsible" class="field-name" />
+            <input placeholder="WhatsApp (ej. 573001234567)" [(ngModel)]="newResponsiblePhone" class="field-phone" />
             <button class="btn btn-primary btn-sm" (click)="addResponsible()" [disabled]="!selectedAreaForResponsible">
               Agregar
             </button>
@@ -102,9 +102,9 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
           Define qué opciones aparecen al elegir un área en el formulario de casos (ej. área "Sistemas" +
           "Queja" → "Conexión a internet").
         </p>
-        <div class="add-row" style="flex-direction:column; align-items:stretch; gap:8px">
-          <div style="display:flex; gap:8px">
-            <select [(ngModel)]="selectedAreaForSubtype" (ngModelChange)="loadSubtypesForSelection()" style="flex:1">
+        <div class="add-row add-row-stacked">
+          <div class="add-row-fields">
+            <select [(ngModel)]="selectedAreaForSubtype" (ngModelChange)="loadSubtypesForSelection()" class="field-grow">
               <option value="">Selecciona un área</option>
               <option *ngFor="let a of areas()" [value]="a.id">{{ a.name }}</option>
             </select>
@@ -113,8 +113,8 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
               <option value="SOLICITUD">Solicitud</option>
             </select>
           </div>
-          <div style="display:flex; gap:8px">
-            <input placeholder="Nombre del tipo (ej. Conexión a internet)" [(ngModel)]="newSubtype" />
+          <div class="add-row-fields">
+            <input placeholder="Nombre del tipo (ej. Conexión a internet)" [(ngModel)]="newSubtype" class="field-grow" />
             <button class="btn btn-primary btn-sm" (click)="addSubtype()" [disabled]="!selectedAreaForSubtype">
               Agregar
             </button>
@@ -137,10 +137,31 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
   styles: [`
     .settings-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; }
     .add-row { display:flex; gap:8px; margin-bottom:12px; }
-    .add-row input { flex:1; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
+    .add-row input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
     .add-row select { padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
     .catalog-list { list-style:none; padding:0; margin:0; max-height:320px; overflow-y:auto; }
     .catalog-list li { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border); }
+
+    // Filas con varios campos (Responsables: área + nombre + WhatsApp; Tipos:
+    // área + tipo, luego nombre). flex-wrap evita que un campo "empuje" el
+    // layout fuera de la tarjeta -el bug que rompía el diseño en pantallas
+    // angostas-, y min-width:0 permite que los inputs se encojan de verdad.
+    .add-row-stacked { flex-direction:column; align-items:stretch; gap:8px; }
+    .add-row-fields { display:flex; flex-wrap:wrap; gap:8px; }
+    .add-row-fields input,
+    .add-row-fields select { min-width:0; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; }
+    .add-row-fields .field-name { flex:2 1 160px; }
+    .add-row-fields .field-phone { flex:1 1 140px; }
+    .add-row-fields .field-grow { flex:1 1 160px; }
+    .add-row-fields button { flex:0 0 auto; }
+
+    @media (max-width: 480px) {
+      .add-row-fields .field-name,
+      .add-row-fields .field-phone,
+      .add-row-fields .field-grow,
+      .add-row-fields select,
+      .add-row-fields button { flex: 1 1 100%; }
+    }
   `],
 })
 export class SettingsComponent {

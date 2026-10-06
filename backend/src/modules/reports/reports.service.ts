@@ -192,4 +192,47 @@ export class ReportsService {
         : null,
     }));
   }
+
+  // Reporte de reseñas externas (Booking/Expedia/Google/...), filtradas por
+  // fecha de REGISTRO (createdAt, igual que el resto de reportes - no la
+  // fecha de estancia del huésped). El filtro de área no aplica directo al
+  // Review (vive en sus ReviewFinding), así que se resuelve con "alguna
+  // reseña que tenga al menos un hallazgo de esa área". "responsibleId" no
+  // aplica a reseñas (no tienen responsable asignado) y se ignora.
+  async reviews(hotelId: string, query: ReportQueryDto, mode: ReportMode = 'preview') {
+    const { from, to } = this.parseRange(query);
+    const where: Prisma.ReviewWhereInput = {
+      hotelId,
+      createdAt: { gte: from, lte: to },
+      ...(query.areaId ? { findings: { some: { areaId: query.areaId } } } : {}),
+    };
+
+    const rows = await this.fetchLimited(mode, (take) =>
+      this.prisma.review.findMany({
+        where,
+        take,
+        include: {
+          location: true,
+          platform: true,
+          createdBy: { select: { fullName: true } },
+          findings: { include: { area: true, subtype: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+
+    return rows.map((r) => ({
+      guestName: r.guestName,
+      platformName: r.platform.name,
+      locationName: r.location.name,
+      room: r.room ?? '',
+      stayDate: r.stayDate,
+      rawText: r.rawText,
+      findingsText: r.findings.length
+        ? r.findings.map((f) => `${f.area?.name ?? '—'} · ${f.subtype?.name ?? f.suggestedName ?? '—'}`).join('; ')
+        : 'Sin clasificar',
+      createdByName: r.createdBy.fullName,
+      createdAt: r.createdAt,
+    }));
+  }
 }

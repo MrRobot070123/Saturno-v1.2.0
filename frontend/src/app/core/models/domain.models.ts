@@ -108,6 +108,9 @@ export interface DashboardSummary {
   delMes: number;
   porcentajeResolucion: number;
   tiempoPromedioResolucionHoras: number | null;
+  totalResenas: number;
+  resenasConHallazgos: number;
+  resenasSinClasificar: number;
 }
 
 export interface ChartSeriesPoint {
@@ -125,6 +128,8 @@ export interface DashboardCharts {
   tiempoPromedioResolucionPorArea: ChartSeriesPoint[];
   casosPorHabitacion: ChartSeriesPoint[];
   casosPorTipoQueja: ChartSeriesPoint[];
+  resenasPorPlataforma: ChartSeriesPoint[];
+  hallazgosResenasPorArea: ChartSeriesPoint[];
 }
 
 export interface ReviewPlatform {

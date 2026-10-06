@@ -151,6 +151,15 @@ interface PendingFinding {
     .pending-findings-list li { padding:8px 0; border-bottom:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center; gap:8px; }
     .btn-link { background:none; border:none; color:var(--color-danger, #c62f2f); cursor:pointer; font-size:13px; }
     .review-form-actions { margin-top:16px; }
+
+    @media (max-width: 768px) {
+      .review-form-page { padding: 12px; }
+      .form-row.cols-2 { grid-template-columns: 1fr; }
+      .finding-add-row select,
+      .finding-add-row input,
+      .finding-add-row button { flex: 1 1 100%; }
+      .review-form-actions .btn { width: 100%; justify-content: center; }
+    }
   `],
 })
 export class ReviewFormComponent implements OnInit {

@@ -26,6 +26,8 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   @ViewChild('resolutionTimeChart') resolutionTimeChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('roomChart') roomChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('subtypeChart') subtypeChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('reviewPlatformChart') reviewPlatformChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('reviewFindingAreaChart') reviewFindingAreaChartRef!: ElementRef<HTMLCanvasElement>;
 
   loading = signal(true);
   summary = signal<DashboardSummary | null>(null);
@@ -117,6 +119,14 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   goToCases(extra: Record<string, string> = {}): void {
     const queryParams = { ...this.baseDrillFilters(), ...extra };
     this.router.navigate(['/casos'], { queryParams });
+  }
+
+  // Las reseñas no comparten los filtros de /casos (no tienen tipo/estado/
+  // prioridad/responsable); solo la ubicación aplica en ambos listados.
+  goToReviews(extra: Record<string, string> = {}): void {
+    const queryParams: Record<string, string> = { ...extra };
+    if (this.filters.locationId) queryParams['locationId'] = this.filters.locationId;
+    this.router.navigate(['/resenas'], { queryParams });
   }
 
   // Para "Del día" / "De la semana" / "Del mes": ignoran el selector de
@@ -328,6 +338,52 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
           plugins: { legend: { display: false } },
           onHover: this.hoverPointer,
           onClick: this.buildChartClickHandler(() => this.lastChartsData?.casosPorTipoQueja, 'subtypeId'),
+        },
+      }),
+    );
+
+    this.charts.push(
+      new Chart(this.reviewPlatformChartRef.nativeElement, {
+        type: 'doughnut',
+        data: {
+          labels: data.resenasPorPlataforma.map((d) => d.label),
+          datasets: [
+            {
+              data: data.resenasPorPlataforma.map((d) => d.value),
+              backgroundColor: ['#019cff', '#d97706', '#16a34a', '#7c3aed', '#dc2626', '#0ea5a4'],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          onHover: this.hoverPointer,
+          onClick: (_evt, elements) => {
+            if (!elements.length) return;
+            const point = this.lastChartsData?.resenasPorPlataforma[elements[0].index];
+            if (!point?.id) return;
+            this.goToReviews({ platformId: point.id });
+          },
+        },
+      }),
+    );
+
+    this.charts.push(
+      new Chart(this.reviewFindingAreaChartRef.nativeElement, {
+        type: 'bar',
+        data: {
+          labels: data.hallazgosResenasPorArea.map((d) => d.label),
+          datasets: [
+            {
+              label: 'Hallazgos',
+              data: data.hallazgosResenasPorArea.map((d) => d.value),
+              backgroundColor: '#1e3a5f',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
         },
       }),
     );
