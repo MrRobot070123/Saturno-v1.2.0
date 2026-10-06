@@ -40,6 +40,12 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # Este docker-compose.yml es para desarrollo local: el frontend
+        # debe hablar con el backend del propio stack (puerto 3000), no
+        # con la API real de producción (environment.prod.ts, usada en
+        # despliegues reales fuera de este archivo).
+        BUILD_SCRIPT: build:local-docker
     restart: unless-stopped
     depends_on:
       - backend
