@@ -20,9 +20,10 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     </p>
 
     <!--
-      Las 5 tarjetas comparten la MISMA estructura: título + ayuda opcional +
+      Las 5 tarjetas comparten la MISMA estructura: título + ayuda corta +
       formulario arriba (tamaño natural, .card-top), y la lista de elementos
-      abajo (.catalog-list).
+      abajo (.catalog-list, con tope de alto y scroll propio - nunca empuja
+      ni recorta el formulario de arriba).
 
       Vista PC (>= 769px): cuadrícula FIJA de 3 columnas iguales
       (grid-template-columns: repeat(3, 1fr), no auto-fit), con las 5
@@ -30,14 +31,18 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       grid arma 2 líneas bien organizadas:
         fila 1 → Ubicaciones · Áreas · Responsables
         fila 2 → Tipos de queja/solicitud · Plataformas de reseñas
-      Ahí las 5 tarjetas tienen ancho y alto IGUALES (.card con altura fija
-      + la lista con scroll interno), sin importar cuántos ítems tenga cada
-      una ni en qué fila esté.
+      Las 5 tarjetas tienen el mismo ancho (1fr c/u) y el mismo alto mínimo
+      (min-height, nunca una altura fija que recorte contenido): como los
+      textos de ayuda se mantuvieron cortos (1 línea) a propósito, en la
+      práctica las 5 terminan con el mismo tamaño visual sin importar
+      cuántos ítems tenga cada lista - el exceso de ítems se desplaza
+      dentro de su propio espacio (.catalog-list) en vez de estirar o
+      recortar la tarjeta.
 
       Vista móvil (< 769px): una sola columna, en cascada, con el alto
-      NATURAL de cada tarjeta (sin altura fija ni scroll interno) - cada
-      una ocupa lo que necesite y la página fluye completa, igual que se
-      veía antes de introducir la altura fija.
+      NATURAL de cada tarjeta y de su lista (sin min-height ni scroll
+      interno) - cada una ocupa lo que necesite y la página fluye completa,
+      como se veía antes de introducir alturas fijas.
 
       Orden: primero los catálogos que alimentan el formulario de Casos, en
       el mismo orden en que se eligen al crear uno (ubicación → área →
@@ -86,7 +91,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       <div class="card">
         <div class="card-top">
           <h4>Responsables</h4>
-          <p class="card-hint">A quién se le puede asignar un caso dentro de cada área.</p>
+          <p class="card-hint">A quién se le puede asignar un caso dentro de un área.</p>
 
           <div class="form-field">
             <label>Área</label>
@@ -130,10 +135,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       <div class="card">
         <div class="card-top">
           <h4>Tipos de queja/solicitud</h4>
-          <p class="card-hint">
-            Qué opciones aparecen al elegir un área en el formulario de casos (ej. área "Sistemas" + "Queja" →
-            "Conexión a internet").
-          </p>
+          <p class="card-hint">Opciones que aparecen al elegir un área en el formulario de casos.</p>
 
           <div class="field-row">
             <div class="form-field">
@@ -180,10 +182,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       <div class="card">
         <div class="card-top">
           <h4>Plataformas de reseñas</h4>
-          <p class="card-hint">
-            Booking, Expedia, Google y otras plataformas desde donde se digitan reseñas de huéspedes (módulo de
-            Reseñas, no afecta el formulario de Casos).
-          </p>
+          <p class="card-hint">Booking, Expedia, Google y otras fuentes de reseñas de huéspedes.</p>
           <div class="form-field">
             <label>Nueva plataforma</label>
             <input placeholder="Ej. Booking" [(ngModel)]="newReviewPlatform" />
@@ -249,8 +248,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     .add-btn { align-self: flex-start; margin-top: 2px; }
 
     // Lista de elementos: en móvil fluye con alto natural (ver media query
-    // de abajo para el scroll interno, que solo aplica en PC donde la
-    // tarjeta tiene alto fijo).
+    // de abajo para el tope + scroll interno, que solo aplica en PC).
     .catalog-list {
       list-style: none;
       padding: 0;
@@ -268,14 +266,15 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     // tarjetas queden organizadas en 2 líneas bien definidas - fila 1:
     // Ubicaciones/Áreas/Responsables, fila 2: Tipos de queja-solicitud/
     // Plataformas de reseñas (esta última deja la 3ra columna vacía, no se
-    // estira). Todas con el mismo ancho (1fr c/u) y el mismo alto fijo, así
-    // que lucen idénticas en tamaño sin importar cuántos ítems tenga cada
-    // lista; el exceso de ítems se desplaza dentro de la tarjeta en vez de
-    // estirarla.
+    // estira). min-height (no height fija) es a propósito: pone un piso
+    // común para que las 5 luzcan del mismo tamaño, pero si algún contenido
+    // llegara a necesitar más espacio, la tarjeta crece en vez de recortar
+    // o solapar texto. El tope real de tamaño lo pone la lista
+    // (max-height + scroll propio), no la tarjeta completa.
     @media (min-width: 769px) {
       .settings-grid { grid-template-columns: repeat(3, 1fr); }
-      .card { height: 480px; }
-      .catalog-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+      .card { min-height: 460px; }
+      .catalog-list { flex: 1 1 auto; min-height: 0; max-height: 230px; overflow-y: auto; }
     }
   `],
 })
