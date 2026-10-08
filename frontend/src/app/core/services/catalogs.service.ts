@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Area, CaseSubtype, CaseType, Location, Responsible } from '../models/domain.models';
+import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } from '../models/domain.models';
 
 @Injectable({ providedIn: 'root' })
 export class CatalogsService {
@@ -45,13 +45,13 @@ export class CatalogsService {
     return this.http.patch<Area>(`${this.base}/areas/${id}`, data);
   }
 
-  createResponsible(areaId: string, fullName: string): Observable<Responsible> {
-    return this.http.post<Responsible>(`${this.base}/responsibles`, { areaId, fullName });
+  createResponsible(areaId: string, fullName: string, phone?: string): Observable<Responsible> {
+    return this.http.post<Responsible>(`${this.base}/responsibles`, { areaId, fullName, phone });
   }
 
   updateResponsible(
     id: string,
-    data: { fullName?: string; isActive?: boolean },
+    data: { fullName?: string; phone?: string; isActive?: boolean },
   ): Observable<Responsible> {
     return this.http.patch<Responsible>(`${this.base}/responsibles/${id}`, data);
   }
@@ -78,4 +78,20 @@ export class CatalogsService {
   updateSubtype(id: string, data: { name?: string; isActive?: boolean }): Observable<CaseSubtype> {
     return this.http.patch<CaseSubtype>(`${this.base}/case-subtypes/${id}`, data);
   }
+
+    // ---------- Plataformas de reseñas (Booking, Expedia, Google...) ----------
+  getReviewPlatforms(onlyActive = true): Observable<ReviewPlatform[]> {
+    return this.http.get<ReviewPlatform[]>(`${this.base}/review-platforms`, {
+      params: { onlyActive: String(onlyActive) },
+    });
+  }
+
+  createReviewPlatform(name: string): Observable<ReviewPlatform> {
+    return this.http.post<ReviewPlatform>(`${this.base}/review-platforms`, { name });
+  }
+
+  updateReviewPlatform(id: string, data: { name?: string; isActive?: boolean }): Observable<ReviewPlatform> {
+    return this.http.patch<ReviewPlatform>(`${this.base}/review-platforms/${id}`, data);
+  }
+
 }

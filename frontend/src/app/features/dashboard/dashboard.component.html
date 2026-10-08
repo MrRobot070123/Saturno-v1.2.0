@@ -80,6 +80,15 @@
     <div class="kpi-value">{{ s.tiempoPromedioResolucionHoras ?? '—' }}</div>
     <div class="kpi-label">Horas prom. resolución</div>
   </div>
+  <div class="kpi-card kpi-clickable" (click)="goToReviews()" title="Ver reseñas externas">
+    <div class="kpi-value">{{ s.totalResenas }}</div><div class="kpi-label">Reseñas externas</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToReviews()" title="Ver reseñas externas">
+    <div class="kpi-value">{{ s.resenasConHallazgos }}</div><div class="kpi-label">Reseñas con hallazgos</div>
+  </div>
+  <div class="kpi-card kpi-clickable" (click)="goToReviews()" title="Ver reseñas externas">
+    <div class="kpi-value">{{ s.resenasSinClasificar }}</div><div class="kpi-label">Reseñas sin clasificar</div>
+  </div>
 </div>
 
 <div class="charts-grid" style="margin-top: 20px">
@@ -122,5 +131,15 @@
     <h4>Casos por tipo de queja/solicitud</h4>
     <p class="card-hint">Haz clic en una barra para ver esos casos</p>
     <canvas #subtypeChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Reseñas por plataforma</h4>
+    <p class="card-hint">Haz clic en un segmento para ver esas reseñas</p>
+    <canvas #reviewPlatformChart></canvas>
+  </div>
+  <div class="card">
+    <h4>Hallazgos de reseñas por área</h4>
+    <p class="card-hint">Tipos de queja identificados en el texto de las reseñas, por área</p>
+    <canvas #reviewFindingAreaChart></canvas>
   </div>
 </div>

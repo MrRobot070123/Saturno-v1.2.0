@@ -7,7 +7,7 @@ import { CatalogsService } from '../../core/services/catalogs.service';
 import { Area, Responsible } from '../../core/models/domain.models';
 import { dayEndIso, dayStartIso, daysAgoCO, rangeDays, todayCO } from '../../core/utils/date-range.util';
 
-type ReportKind = 'general' | 'pending' | 'byArea' | 'byResponsible' | 'resolutionTime';
+type ReportKind = 'general' | 'pending' | 'byArea' | 'byResponsible' | 'resolutionTime' | 'reviews';
 type ColDef = [key: string, header: string];
 
 // Deben coincidir con los límites del backend (reports.service.ts).
@@ -19,13 +19,14 @@ const EXPORT_LIMIT = 5000;
 // backend (/reports/<path>/export) y el nombre de archivo sugerido.
 const REPORT_EXPORT_INFO: Record<
   ReportKind,
-  { path: 'cases' | 'pending' | 'by-area' | 'by-responsible' | 'resolution-time'; filename: string }
+  { path: 'cases' | 'pending' | 'by-area' | 'by-responsible' | 'resolution-time' | 'reviews'; filename: string }
 > = {
   general: { path: 'cases', filename: 'reporte-casos' },
   pending: { path: 'pending', filename: 'reporte-pendientes' },
   byArea: { path: 'by-area', filename: 'reporte-por-area' },
   byResponsible: { path: 'by-responsible', filename: 'reporte-por-responsable' },
   resolutionTime: { path: 'resolution-time', filename: 'reporte-tiempos-resolucion' },
+  reviews: { path: 'reviews', filename: 'reporte-resenas' },
 };
 
 const GENERAL_COLS: ColDef[] = [
@@ -45,6 +46,10 @@ const BY_RESPONSIBLE_COLS: ColDef[] = [
 ];
 const RESOLUTION_COLS: ColDef[] = [
   ['caseNumber', 'Caso'], ['createdAt', 'Creación'], ['closedAt', 'Cierre'], ['durationHours', 'Duración (h)'],
+];
+const REVIEWS_COLS: ColDef[] = [
+  ['guestName', 'Huésped'], ['platformName', 'Plataforma'], ['locationName', 'Ubicación'],
+  ['stayDate', 'Fecha estancia'], ['findingsText', 'Hallazgos'],
 ];
 
 @Component({
@@ -69,6 +74,7 @@ const RESOLUTION_COLS: ColDef[] = [
             <option value="byArea">Por área</option>
             <option value="byResponsible">Por responsable</option>
             <option value="resolutionTime">Tiempos de resolución</option>
+            <option value="reviews">Reseñas externas</option>
           </select>
         </label>
 
@@ -292,13 +298,19 @@ export class ReportsComponent {
     this.catalogsService.getAreas(false).subscribe((areas) => this.areas.set(areas));
   }
 
-  // El filtro de responsable no aplica al reporte "por área".
+  // El filtro de responsable no aplica al reporte "por área" ni al de
+  // reseñas (no tienen responsable asignado).
   usesResponsible(): boolean {
-    return this.activeReport !== 'byArea';
+    return this.activeReport !== 'byArea' && this.activeReport !== 'reviews';
   }
 
   private isDetailReport(): boolean {
-    return this.activeReport === 'general' || this.activeReport === 'pending' || this.activeReport === 'resolutionTime';
+    return (
+      this.activeReport === 'general' ||
+      this.activeReport === 'pending' ||
+      this.activeReport === 'resolutionTime' ||
+      this.activeReport === 'reviews'
+    );
   }
 
   // Mensaje de validación del rango, o null si es válido.
@@ -389,6 +401,8 @@ export class ReportsComponent {
         this.reportsService
           .resolutionTime(filters)
           .subscribe({ next: (r) => this.setData(r, RESOLUTION_COLS), error: fail }),
+      reviews: () =>
+        this.reportsService.reviews(filters).subscribe({ next: (r) => this.setData(r, REVIEWS_COLS), error: fail }),
     };
     handlers[this.activeReport]();
   }
@@ -412,6 +426,9 @@ export class ReportsComponent {
         dateStyle: 'short',
         timeStyle: 'short',
       });
+    }
+    if (key === 'stayDate' && typeof value === 'string') {
+      return new Date(value).toLocaleDateString('es-CO', { timeZone: 'UTC', dateStyle: 'short' });
     }
     if (key === 'avg_hours') return Number(value).toFixed(1);
     return String(value);

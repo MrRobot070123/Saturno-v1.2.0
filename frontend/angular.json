@@ -37,6 +37,15 @@
             "development": {
               "optimization": false,
               "sourceMap": true
+            },
+            "local-docker": {
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local-docker.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -45,11 +54,15 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "hotel-case-system:build:production" },
-            "development": { "buildTarget": "hotel-case-system:build:development" }
+            "development": { "buildTarget": "hotel-case-system:build:development" },
+            "local-docker": { "buildTarget": "hotel-case-system:build:local-docker" }
           },
           "defaultConfiguration": "development"
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }

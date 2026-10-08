@@ -34,6 +34,7 @@ export interface Responsible {
   id: string;
   fullName: string;
   areaId: string;
+  phone: string | null;
   isActive: boolean;
 }
 
@@ -107,6 +108,9 @@ export interface DashboardSummary {
   delMes: number;
   porcentajeResolucion: number;
   tiempoPromedioResolucionHoras: number | null;
+  totalResenas: number;
+  resenasConHallazgos: number;
+  resenasSinClasificar: number;
 }
 
 export interface ChartSeriesPoint {
@@ -124,4 +128,38 @@ export interface DashboardCharts {
   tiempoPromedioResolucionPorArea: ChartSeriesPoint[];
   casosPorHabitacion: ChartSeriesPoint[];
   casosPorTipoQueja: ChartSeriesPoint[];
+  resenasPorPlataforma: ChartSeriesPoint[];
+  hallazgosResenasPorArea: ChartSeriesPoint[];
+}
+
+export interface ReviewPlatform {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface ReviewFinding {
+  id: string;
+  excerpt: string;
+  area: { id: string; name: string } | null;
+  subtype: { id: string; name: string } | null;
+  suggestedName: string | null;
+  suggestedArea: string | null;
+  confidence: number;
+  status: 'MATCHED' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  reviewedBy: { id: string; fullName: string } | null;
+  generatedCase: { id: string; caseNumber: string } | null;
+}
+
+export interface Review {
+  id: string;
+  stayDate: string;
+  guestName: string;
+  room: string | null;
+  rawText: string;
+  location: Location;
+  platform: ReviewPlatform;
+  createdBy: { id: string; fullName: string };
+  createdAt: string;
+  findings: ReviewFinding[];
 }

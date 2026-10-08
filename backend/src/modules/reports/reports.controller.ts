@@ -61,6 +61,18 @@ const BY_RESPONSIBLE_COLUMNS: ExportColumn[] = [
   { header: 'Horas prom. resolución', key: 'avg_hours', width: 18 },
 ];
 
+const REVIEWS_COLUMNS: ExportColumn[] = [
+  { header: 'Huésped', key: 'guestName', width: 22 },
+  { header: 'Plataforma', key: 'platformName', width: 14 },
+  { header: 'Ubicación', key: 'locationName', width: 18 },
+  { header: 'Habitación', key: 'room', width: 12 },
+  { header: 'Fecha de estancia', key: 'stayDate', width: 18 },
+  { header: 'Hallazgos', key: 'findingsText', width: 34 },
+  { header: 'Observación', key: 'rawText', width: 40 },
+  { header: 'Digitada por', key: 'createdByName', width: 20 },
+  { header: 'Registrada (hora Colombia)', key: 'createdAt', width: 20 },
+];
+
 const RESOLUTION_TIME_COLUMNS: ExportColumn[] = [
   { header: 'Caso', key: 'caseNumber', width: 16 },
   { header: 'Tipo', key: 'type', width: 12 },
@@ -112,6 +124,11 @@ export class ReportsController {
   @Get('resolution-time')
   resolutionTime(@CurrentUser() user: AuthenticatedUser, @Query() query: ReportQueryDto) {
     return this.reportsService.resolutionTimes(user.hotelId, query);
+  }
+
+  @Get('reviews')
+  reviews(@CurrentUser() user: AuthenticatedUser, @Query() query: ReportQueryDto) {
+    return this.reportsService.reviews(user.hotelId, query);
   }
 
   // ---------- Exportación (máx. 5.000 filas; si se supera, responde 400 con un mensaje claro) ----------
@@ -247,6 +264,29 @@ export class ReportsController {
       RESOLUTION_TIME_COLUMNS,
       flat,
     );
+  }
+
+  @Get('reviews/export')
+  async exportReviews(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ReportExportQueryDto,
+    @Res() res: Response,
+  ) {
+    const format = query.format ?? 'excel';
+    const rows = await this.reportsService.reviews(user.hotelId, query, 'export');
+    const flat = rows.map((r) => ({
+      guestName: r.guestName,
+      platformName: r.platformName,
+      locationName: r.locationName,
+      room: r.room,
+      stayDate: formatDateTimeCO(r.stayDate),
+      findingsText: r.findingsText,
+      rawText: r.rawText,
+      createdByName: r.createdByName,
+      createdAt: formatDateTimeCO(r.createdAt),
+    }));
+
+    return this.dispatchExport(res, format, 'reporte-resenas', 'Reporte de Reseñas Externas', REVIEWS_COLUMNS, flat);
   }
 
   // Único punto que decide qué generador usar según el formato pedido,

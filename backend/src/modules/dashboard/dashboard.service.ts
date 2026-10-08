@@ -25,6 +25,19 @@ export class DashboardService {
     };
   }
 
+  // Las reseñas no tienen tipo/estado/prioridad/responsable (no son Case),
+  // así que solo heredan del dashboard los filtros que sí les aplican:
+  // ubicación y el rango de fechas (por fecha de REGISTRO, createdAt, igual
+  // que los casos - no la fecha de estancia del huésped).
+  private buildReviewWhere(hotelId: string, query: DashboardQueryDto): Prisma.ReviewWhereInput {
+    const dateRange = resolveDateRange(query.range, query.from, query.to);
+    return {
+      hotelId,
+      ...(query.locationId ? { locationId: query.locationId } : {}),
+      ...(Object.keys(dateRange).length ? { createdAt: dateRange } : {}),
+    };
+  }
+
   async summary(hotelId: string, query: DashboardQueryDto) {
     const where = this.buildWhere(hotelId, query);
     const now = new Date();
@@ -67,6 +80,14 @@ export class DashboardService {
       ${query.type ? Prisma.sql`AND "type" = ${query.type}::"CaseType"` : Prisma.empty}
     `;
 
+    // Reseñas externas (Booking/Expedia/Google/...): mismo rango de fechas
+    // y ubicación del dashboard, ver buildReviewWhere.
+    const reviewWhere = this.buildReviewWhere(hotelId, query);
+    const [totalResenas, resenasConHallazgos] = await this.prisma.$transaction([
+      this.prisma.review.count({ where: reviewWhere }),
+      this.prisma.review.count({ where: { ...reviewWhere, findings: { some: {} } } }),
+    ]);
+
     return {
       totalCasos: total,
       totalQuejas,
@@ -83,6 +104,9 @@ export class DashboardService {
       tiempoPromedioResolucionHoras: avgResolution[0]?.avg_hours
         ? Number(avgResolution[0].avg_hours.toFixed(1))
         : null,
+      totalResenas,
+      resenasConHallazgos,
+      resenasSinClasificar: totalResenas - resenasConHallazgos,
     };
   }
 
@@ -134,6 +158,20 @@ export class DashboardService {
     const locationMap = new Map(locationNames.map((l) => [l.id, l.name]));
     const subtypeMap = new Map(subtypeNames.map((s) => [s.id, s.name]));
 
+    // Reseñas: por plataforma (Booking/Expedia/Google/...) y los hallazgos
+    // (tipos de queja detectados en el texto) agrupados por área.
+    const reviewWhere = this.buildReviewWhere(hotelId, query);
+    const [byPlatform, byFindingArea] = await Promise.all([
+      this.prisma.review.groupBy({ by: ['platformId'], where: reviewWhere, _count: true }),
+      this.prisma.reviewFinding.groupBy({
+        by: ['areaId'],
+        where: { areaId: { not: null }, review: reviewWhere },
+        _count: true,
+      }),
+    ]);
+    const platformNames = await this.prisma.reviewPlatform.findMany({ where: { hotelId } });
+    const platformMap = new Map(platformNames.map((p) => [p.id, p.name]));
+
     return {
       casosPorEstado: byStatus.map((r) => ({ label: r.status, value: r._count, id: r.status })),
       quejasVsSolicitudes: byType.map((r) => ({ label: r.type, value: r._count, id: r.type })),
@@ -157,6 +195,16 @@ export class DashboardService {
         label: r.subtypeId ? subtypeMap.get(r.subtypeId) ?? 'Otro' : 'Otro',
         value: r._count,
         id: r.subtypeId ?? undefined,
+      })),
+      resenasPorPlataforma: byPlatform.map((r) => ({
+        label: platformMap.get(r.platformId) ?? 'Desconocida',
+        value: r._count,
+        id: r.platformId,
+      })),
+      hallazgosResenasPorArea: byFindingArea.map((r) => ({
+        label: r.areaId ? areaMap.get(r.areaId) ?? 'Sin área' : 'Sin área',
+        value: r._count,
+        id: r.areaId ?? undefined,
       })),
     };
   }

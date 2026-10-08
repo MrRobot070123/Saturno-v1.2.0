@@ -6,7 +6,13 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN npm run build:prod
+
+# Por defecto compila contra la API real de producción (environment.prod.ts).
+# docker-compose.yml (uso local) pasa --build-arg BUILD_SCRIPT=build:local-docker
+# para que el frontend hable con el backend del propio stack local en vez
+# de con la API real.
+ARG BUILD_SCRIPT=build:prod
+RUN npm run ${BUILD_SCRIPT}
 
 # ---------- Etapa de producción ----------
 FROM nginx:1.27-alpine AS production

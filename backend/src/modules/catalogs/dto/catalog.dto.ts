@@ -12,6 +12,11 @@ export class CreateAreaDto {
   @MinLength(2)
   name: string;
 }
+export class CreateReviewPlatformDto {
+  @IsString()
+  @MinLength(2)
+  name: string;
+}
 
 export class CreateResponsibleDto {
   @IsUUID()
@@ -20,6 +25,10 @@ export class CreateResponsibleDto {
   @IsString()
   @MinLength(2)
   fullName: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
   @IsOptional()
   @IsUUID()
@@ -47,6 +56,10 @@ export class UpdateCatalogItemDto {
   @IsOptional()
   @IsString()
   fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
   @IsOptional()
   @IsBoolean()

@@ -38,6 +38,7 @@ export class LayoutComponent implements OnDestroy {
     { label: 'Casos', path: '/casos', icon: '🗂️' },
     { label: 'Quejas', path: '/quejas', icon: '⚠️' },
     { label: 'Solicitudes', path: '/solicitudes', icon: '📝' },
+    { label: 'Reseñas', path: '/resenas', icon: '⭐', permission: 'review:view' },
     { label: 'Reportes', path: '/reportes', icon: '📈', permission: 'report:view' },
     { label: 'Usuarios', path: '/usuarios', icon: '👥', permission: 'user:manage' },
     { label: 'Configuración', path: '/configuracion', icon: '⚙️', permission: 'catalog:manage' },

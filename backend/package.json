@@ -1,6 +1,6 @@
 {
   "name": "saturno-backend",
-  "version": "1.2.0",
+  "version": "2.1.0",
   "description": "API REST - Sistema Hotelero de Gestión, Seguimiento y Control de Casos",
   "license": "UNLICENSED",
   "scripts": {

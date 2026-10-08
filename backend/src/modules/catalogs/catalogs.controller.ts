@@ -10,6 +10,7 @@ import {
   CreateResponsibleDto,
   CreateSubtypeDto,
   UpdateCatalogItemDto,
+  CreateReviewPlatformDto,
 } from './dto/catalog.dto';
 
 @Controller()
@@ -126,5 +127,29 @@ export class CatalogsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.catalogsService.updateSubtype(id, dto, user.userId);
+  }
+
+  // ---------- REVIEW PLATFORMS (Booking, Expedia, Google...) ----------
+  @Get('review-platforms')
+  findReviewPlatforms(@CurrentUser() user: AuthenticatedUser, @Query('onlyActive') onlyActive?: string) {
+    return this.catalogsService.findReviewPlatforms(user.hotelId, onlyActive === 'true');
+  }
+
+  @Post('review-platforms')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ADMINISTRADOR)
+  createReviewPlatform(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateReviewPlatformDto) {
+    return this.catalogsService.createReviewPlatform(user.hotelId, dto, user.userId);
+  }
+
+  @Patch('review-platforms/:id')
+  @UseGuards(RolesGuard)
+  @Roles(RoleName.ADMINISTRADOR)
+  updateReviewPlatform(
+    @Param('id') id: string,
+    @Body() dto: UpdateCatalogItemDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.catalogsService.updateReviewPlatform(id, dto, user.userId);
   }
 }

@@ -45,12 +45,16 @@ export class ReportsService {
     });
   }
 
+  reviews(filters: CaseFilters): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/reviews`, { params: this.buildParams(filters) });
+  }
+
   // La generación del archivo ocurre en el backend (regla #22); el frontend
   // solo dispara la descarga del blob resultante sin bloquear la UI.
-  // Un único método sirve para los 5 reportes (regla #42, no duplicar
+  // Un único método sirve para los 6 reportes (regla #42, no duplicar
   // lógica): cada uno solo difiere en el path del endpoint.
   export(
-    endpointPath: 'cases' | 'pending' | 'by-area' | 'by-responsible' | 'resolution-time',
+    endpointPath: 'cases' | 'pending' | 'by-area' | 'by-responsible' | 'resolution-time' | 'reviews',
     filters: CaseFilters,
     format: 'csv' | 'excel' | 'pdf',
   ): Observable<Blob> {

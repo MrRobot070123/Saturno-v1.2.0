@@ -9,6 +9,7 @@ import {
   CreateResponsibleDto,
   CreateSubtypeDto,
   UpdateCatalogItemDto,
+  CreateReviewPlatformDto,
 } from './dto/catalog.dto';
 
 // Todos los catálogos (ubicaciones, áreas, responsables) son ampliables
@@ -120,7 +121,7 @@ export class CatalogsService {
     if (!area) throw new NotFoundException('Área no encontrada');
 
     const responsible = await this.prisma.responsible.create({
-      data: { areaId: dto.areaId, fullName: dto.fullName, userId: dto.userId },
+      data: { areaId: dto.areaId, fullName: dto.fullName, phone: dto.phone, userId: dto.userId },
     });
 
     await this.audit.log({
@@ -139,7 +140,7 @@ export class CatalogsService {
 
     const updated = await this.prisma.responsible.update({
       where: { id },
-      data: { fullName: dto.fullName, isActive: dto.isActive },
+      data: { fullName: dto.fullName, phone: dto.phone, isActive: dto.isActive },
     });
 
     await this.audit.log({
@@ -207,6 +208,51 @@ export class CatalogsService {
       userId: actingUserId,
       action: 'CATALOG_UPDATE',
       entity: 'CaseSubtype',
+      entityId: id,
+      oldValues: { name: existing.name, isActive: existing.isActive },
+      newValues: toAuditJson({ name: dto.name, isActive: dto.isActive }),
+    });
+    return updated;
+  }
+
+  // ---------- REVIEW PLATFORMS (Booking, Expedia, Google...) ----------
+  findReviewPlatforms(hotelId: string, onlyActive = false) {
+    return this.prisma.reviewPlatform.findMany({
+      where: { hotelId, ...(onlyActive ? { isActive: true } : {}) },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createReviewPlatform(hotelId: string, dto: CreateReviewPlatformDto, actingUserId: string) {
+    const existing = await this.prisma.reviewPlatform.findFirst({
+      where: { hotelId, name: dto.name },
+    });
+    if (existing) throw new ConflictException('Ya existe una plataforma con ese nombre');
+
+    const platform = await this.prisma.reviewPlatform.create({ data: { hotelId, name: dto.name } });
+    await this.audit.log({
+      userId: actingUserId,
+      action: 'CATALOG_CREATE',
+      entity: 'ReviewPlatform',
+      entityId: platform.id,
+      newValues: { name: platform.name },
+    });
+    return platform;
+  }
+
+  async updateReviewPlatform(id: string, dto: UpdateCatalogItemDto, actingUserId: string) {
+    const existing = await this.prisma.reviewPlatform.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Plataforma no encontrada');
+
+    const updated = await this.prisma.reviewPlatform.update({
+      where: { id },
+      data: { name: dto.name, isActive: dto.isActive },
+    });
+
+    await this.audit.log({
+      userId: actingUserId,
+      action: 'CATALOG_UPDATE',
+      entity: 'ReviewPlatform',
       entityId: id,
       oldValues: { name: existing.name, isActive: existing.isActive },
       newValues: toAuditJson({ name: dto.name, isActive: dto.isActive }),
