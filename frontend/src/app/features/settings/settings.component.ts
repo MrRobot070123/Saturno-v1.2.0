@@ -20,25 +20,16 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     </p>
 
     <!--
-      Vuelta a la base que SÍ funcionaba bien en producción (la de antes del
-      módulo de reseñas): cada tarjeta tiene su alto NATURAL (nada de
-      height/min-height fijos en .card, esa fue la causa de los solapamientos
-      de las últimas pruebas) y es la LISTA la que se autolimita con
-      max-height + scroll propio, nunca la tarjeta completa.
-
-      Para que las 5 tarjetas (antes eran 4) queden parejas, la cuadrícula
-      usa 3 columnas fijas en pantallas anchas, así el propio orden del
-      markup arma 2 filas bien organizadas:
-        fila 1 → Ubicaciones · Áreas · Responsables
-        fila 2 → Tipos de queja/solicitud · Plataformas de reseñas
-      Dentro de cada fila, CSS Grid ya iguala el alto de sus tarjetas por
-      defecto (align-items: stretch); como el contenido de arriba (título +
-      ayuda corta + campos) es parecido en tamaño entre ambas filas, las 5
-      terminan viéndose del mismo tamaño en la práctica, sin forzar nada.
-
-      En pantallas angostas (celular/tablet) se usa auto-fit, que cae solo a
-      1 columna en celular - cascada natural, cada tarjeta con su alto
-      propio, igual que se veía antes.
+      Exactamente el mismo patrón que ya funcionaba bien antes del módulo de
+      reseñas (4 tarjetas en una sola fila, auto-ajustadas): ninguna regla
+      nueva de "3 columnas forzadas en PC" - esa fue la única pieza no
+      probada de los últimos intentos. Solo `auto-fit`, igual que siempre:
+      en pantallas anchas pone todas las tarjetas que quepan en una fila
+      (con las 5 tarjetas actuales, normalmente las 5 en una sola línea o
+      4+1 según el ancho real de la ventana); en celular cae solo a 1
+      columna (cascada natural). Ninguna tarjeta tiene alto fijo - es la
+      lista (.catalog-list) la que se autolimita con max-height + scroll
+      propio, nunca la tarjeta completa.
     -->
     <div class="settings-grid">
       <div class="card">
@@ -163,11 +154,8 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
   styles: [`
     .settings-intro { color: var(--color-text-muted); max-width: 900px; }
 
-    // Auto-fit: en celular/tablet cae solo a 1 columna (cascada natural,
-    // cada tarjeta con su alto propio). En PC se fuerza a 3 columnas exactas
-    // (ver media query al final) para que las 5 tarjetas queden organizadas
-    // en 2 filas: 3 arriba (Ubicaciones/Áreas/Responsables) y 2 abajo
-    // (Tipos/Plataformas), en vez de un número de columnas impredecible.
+    // auto-fit puro, sin ninguna regla adicional: en PC pone todas las
+    // tarjetas que quepan en una fila, en celular cae solo a 1 columna.
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -208,12 +196,6 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       .add-row-fields .field-grow,
       .add-row-fields select,
       .add-row-fields button { flex: 1 1 100%; }
-    }
-
-    // PC: 3 columnas exactas (no auto-fit) para que el orden de las 5
-    // tarjetas en el markup arme 2 filas organizadas (3 arriba, 2 abajo).
-    @media (min-width: 1000px) {
-      .settings-grid { grid-template-columns: repeat(3, 1fr); }
     }
   `],
 })
