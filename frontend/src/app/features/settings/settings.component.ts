@@ -19,18 +19,6 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       casos que ya lo usaron.
     </p>
 
-    <!--
-      Exactamente el mismo patrón que ya funcionaba bien antes del módulo de
-      reseñas (4 tarjetas en una sola fila, auto-ajustadas): ninguna regla
-      nueva de "3 columnas forzadas en PC" - esa fue la única pieza no
-      probada de los últimos intentos. Solo auto-fit, igual que siempre:
-      en pantallas anchas pone todas las tarjetas que quepan en una fila
-      (con las 5 tarjetas actuales, normalmente las 5 en una sola línea o
-      4+1 según el ancho real de la ventana); en celular cae solo a 1
-      columna (cascada natural). Ninguna tarjeta tiene alto fijo - es la
-      lista (.catalog-list) la que se autolimita con max-height + scroll
-      propio, nunca la tarjeta completa.
-    -->
     <div class="settings-grid">
       <div class="card">
         <h4>Ubicaciones</h4>
@@ -154,8 +142,6 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
   styles: [`
     .settings-intro { color: var(--color-text-muted); max-width: 900px; }
 
-    // auto-fit puro, sin ninguna regla adicional: en PC pone todas las
-    // tarjetas que quepan en una fila, en celular cae solo a 1 columna.
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -169,18 +155,11 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
     .add-row input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
     .add-row select { padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
 
-    // Lista de elementos: SIN alto fijo en la tarjeta - es la lista la que
-    // se autolimita (max-height + scroll propio). Así nunca recorta ni
-    // empuja el formulario de arriba, y la tarjeta crece lo justo.
     .catalog-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
     .catalog-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--color-border); }
     .catalog-list li span { overflow-wrap: anywhere; }
     .catalog-list-empty { color: var(--color-text-muted); border-bottom: none; font-size: 13px; }
 
-    // Filas con varios campos (Responsables: área + nombre + WhatsApp; Tipos:
-    // área + tipo, luego nombre). flex-wrap evita que un campo "empuje" el
-    // layout fuera de la tarjeta, y min-width:0 permite que los inputs se
-    // encojan de verdad en vez de imponer un ancho mínimo propio.
     .add-row-stacked { flex-direction: column; align-items: stretch; gap: 8px; }
     .add-row-fields { display: flex; flex-wrap: wrap; gap: 8px; }
     .add-row-fields input,
