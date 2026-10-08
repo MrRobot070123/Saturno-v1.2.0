@@ -23,7 +23,7 @@ import { Area, CaseSubtype, CaseType, Location, Responsible, ReviewPlatform } fr
       Exactamente el mismo patrón que ya funcionaba bien antes del módulo de
       reseñas (4 tarjetas en una sola fila, auto-ajustadas): ninguna regla
       nueva de "3 columnas forzadas en PC" - esa fue la única pieza no
-      probada de los últimos intentos. Solo `auto-fit`, igual que siempre:
+      probada de los últimos intentos. Solo auto-fit, igual que siempre:
       en pantallas anchas pone todas las tarjetas que quepan en una fila
       (con las 5 tarjetas actuales, normalmente las 5 en una sola línea o
       4+1 según el ancho real de la ventana); en celular cae solo a 1
