@@ -384,6 +384,13 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
         options: {
           responsive: true,
           plugins: { legend: { display: false } },
+          onHover: this.hoverPointer,
+          onClick: (_evt, elements) => {
+            if (!elements.length) return;
+            const point = this.lastChartsData?.hallazgosResenasPorArea[elements[0].index];
+            if (!point?.id) return;
+            this.goToReviews({ areaId: point.id });
+          },
         },
       }),
     );
