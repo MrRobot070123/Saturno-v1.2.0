@@ -12,8 +12,8 @@ import {
 } from 'class-validator';
 import { Type as TransformType } from 'class-transformer';
 
-// Hallazgo cargado manualmente (Fase A, sin IA todavía). confidence queda en
-// 1 y status en MATCHED porque lo está confirmando una persona directamente.
+// Hallazgo cargado manualmente (Fase A, sin IA). confidence queda en 1 y
+// status en MATCHED porque lo está confirmando una persona directamente.
 export class CreateFindingDto {
   @IsUUID()
   subtypeId: string;
@@ -45,6 +45,9 @@ export class CreateReviewDto {
   @MinLength(10, { message: 'Pega la observación completa que dejó el huésped' })
   rawText: string;
 
+  // Si se omite (o viene vacío), la reseña se clasifica automáticamente con
+  // IA al crearse (Fase B). Si se envían hallazgos manuales, se respetan
+  // tal cual y NO se dispara la clasificación automática para esta reseña.
   @IsOptional()
   @ValidateNested({ each: true })
   @TransformType(() => CreateFindingDto)
@@ -79,6 +82,14 @@ export class ReviewQueryDto {
   @IsUUID()
   platformId?: string;
 
+  // Filtro de drill-down desde el gráfico "Hallazgos de reseñas por área"
+  // del dashboard: trae solo las reseñas que tienen al menos un hallazgo
+  // clasificado en esa área (misma lógica que reportes/dashboard usan para
+  // reviewFinding.areaId).
+  @IsOptional()
+  @IsUUID()
+  areaId?: string;
+
   @IsOptional()
   @IsISO8601()
   from?: string;
@@ -86,4 +97,25 @@ export class ReviewQueryDto {
   @IsOptional()
   @IsISO8601()
   to?: string;
+}
+
+// Aprobación de un hallazgo PENDING_APPROVAL (Fase B): el administrador
+// elige UNA de dos rutas —
+//   a) vincularlo a un tipo de queja que YA existe (subtypeId), o
+//   b) crear un tipo de queja NUEVO dentro de un área (areaId + name),
+//      que es lo que la IA proponía como "suggestedArea"/"suggestedName".
+// El servicio valida que venga exactamente una de las dos combinaciones.
+export class ApproveFindingDto {
+  @IsOptional()
+  @IsUUID()
+  subtypeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  areaId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name?: string;
 }

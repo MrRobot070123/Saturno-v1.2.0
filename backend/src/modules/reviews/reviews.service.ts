@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ReviewClassifierService } from './review-classifier.service';
 import { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
-import { AddFindingDto, CreateReviewDto, ReviewQueryDto } from './dto/review.dto';
+import { AddFindingDto, ApproveFindingDto, CreateReviewDto, ReviewQueryDto } from './dto/review.dto';
 
 const REVIEW_INCLUDE = {
   location: { select: { id: true, name: true } },
@@ -20,13 +22,21 @@ const REVIEW_INCLUDE = {
 
 @Injectable()
 export class ReviewsService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  private readonly logger = new Logger(ReviewsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+    private notifications: NotificationsService,
+    private classifier: ReviewClassifierService,
+  ) {}
 
   async findAll(hotelId: string, query: ReviewQueryDto) {
     const where = {
       hotelId,
       ...(query.locationId ? { locationId: query.locationId } : {}),
       ...(query.platformId ? { platformId: query.platformId } : {}),
+      ...(query.areaId ? { findings: { some: { areaId: query.areaId } } } : {}),
       ...(query.from || query.to
         ? {
             stayDate: {
@@ -117,7 +127,54 @@ export class ReviewsService {
       newValues: { guestName: review.guestName, platformId: review.platformId },
     });
 
+    // Fase B: si no se cargaron hallazgos manuales, se dispara la
+    // clasificación automática con IA en el mismo request (bajo volumen de
+    // reseñas digitadas manualmente, no amerita una cola en segundo plano).
+    // Si falla (sin API key, red, etc.) NO se revierte la creación de la
+    // reseña: queda guardada con aiError para poder diagnosticar/reintentar.
+    if (!dto.findings?.length) {
+      await this.runAiClassification(user.hotelId, review.id, dto.rawText);
+      return this.findOne(user.hotelId, review.id);
+    }
+
     return review;
+  }
+
+  private async runAiClassification(hotelId: string, reviewId: string, rawText: string) {
+    try {
+      const findings = await this.classifier.classify(hotelId, rawText);
+
+      for (const f of findings) {
+        const status = f.subtypeId ? 'MATCHED' : 'PENDING_APPROVAL';
+        const finding = await this.prisma.reviewFinding.create({
+          data: {
+            reviewId,
+            excerpt: f.excerpt,
+            areaId: f.areaId ?? null,
+            subtypeId: f.subtypeId ?? null,
+            suggestedName: f.suggestedName ?? null,
+            suggestedArea: f.suggestedArea ?? null,
+            confidence: f.confidence,
+            status,
+          },
+        });
+
+        if (status === 'PENDING_APPROVAL') {
+          await this.notifications.notifyPendingClassification(hotelId, finding, rawText);
+        }
+      }
+
+      await this.prisma.review.update({
+        where: { id: reviewId },
+        data: { aiProcessedAt: new Date(), aiError: null },
+      });
+    } catch (err: any) {
+      this.logger.error(`Clasificación IA falló para la reseña ${reviewId}: ${err?.message ?? err}`);
+      await this.prisma.review.update({
+        where: { id: reviewId },
+        data: { aiError: String(err?.message ?? 'Error desconocido').slice(0, 500) },
+      });
+    }
   }
 
   async addFinding(hotelId: string, reviewId: string, dto: AddFindingDto, user: AuthenticatedUser) {
@@ -151,5 +208,116 @@ export class ReviewsService {
     });
 
     return finding;
+  }
+
+  // ---------- Fase B: aprobación de hallazgos propuestos por la IA ----------
+
+  findPendingFindings(hotelId: string) {
+    return this.prisma.reviewFinding.findMany({
+      where: { status: 'PENDING_APPROVAL', review: { hotelId } },
+      include: {
+        review: {
+          select: {
+            id: true,
+            guestName: true,
+            stayDate: true,
+            platform: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async approveFinding(hotelId: string, findingId: string, dto: ApproveFindingDto, user: AuthenticatedUser) {
+    const finding = await this.prisma.reviewFinding.findFirst({
+      where: { id: findingId, review: { hotelId } },
+    });
+    if (!finding) throw new NotFoundException('Hallazgo no encontrado');
+    if (finding.status !== 'PENDING_APPROVAL') {
+      throw new ConflictException('Este hallazgo ya fue revisado');
+    }
+
+    let subtypeId: string;
+    let areaId: string;
+
+    if (dto.subtypeId) {
+      // Opción A: vincular a un tipo de queja que ya existe.
+      const subtype = await this.prisma.caseSubtype.findFirst({
+        where: { id: dto.subtypeId, area: { hotelId } },
+      });
+      if (!subtype) throw new NotFoundException('Tipo de queja no encontrado');
+      subtypeId = subtype.id;
+      areaId = subtype.areaId;
+    } else if (dto.areaId && dto.name) {
+      // Opción B: crear el tipo de queja nuevo que la IA propuso.
+      const area = await this.prisma.area.findFirst({ where: { id: dto.areaId, hotelId } });
+      if (!area) throw new NotFoundException('Área no encontrada');
+
+      const existing = await this.prisma.caseSubtype.findFirst({
+        where: { areaId: dto.areaId, type: 'QUEJA', name: dto.name },
+      });
+      const subtype =
+        existing ??
+        (await this.prisma.caseSubtype.create({
+          data: { areaId: dto.areaId, type: 'QUEJA', name: dto.name },
+        }));
+      subtypeId = subtype.id;
+      areaId = area.id;
+    } else {
+      throw new BadRequestException(
+        'Indica un subtypeId existente, o areaId + name para crear un tipo de queja nuevo',
+      );
+    }
+
+    const updated = await this.prisma.reviewFinding.update({
+      where: { id: findingId },
+      data: {
+        subtypeId,
+        areaId,
+        status: 'APPROVED',
+        reviewedById: user.userId,
+        reviewedAt: new Date(),
+      },
+      include: {
+        area: { select: { id: true, name: true } },
+        subtype: { select: { id: true, name: true } },
+      },
+    });
+
+    await this.audit.log({
+      userId: user.userId,
+      action: 'REVIEW_FINDING_APPROVE',
+      entity: 'ReviewFinding',
+      entityId: findingId,
+      newValues: { subtypeId, areaId },
+    });
+
+    return updated;
+  }
+
+  async rejectFinding(hotelId: string, findingId: string, user: AuthenticatedUser) {
+    const finding = await this.prisma.reviewFinding.findFirst({
+      where: { id: findingId, review: { hotelId } },
+    });
+    if (!finding) throw new NotFoundException('Hallazgo no encontrado');
+    if (finding.status !== 'PENDING_APPROVAL') {
+      throw new ConflictException('Este hallazgo ya fue revisado');
+    }
+
+    const updated = await this.prisma.reviewFinding.update({
+      where: { id: findingId },
+      data: { status: 'REJECTED', reviewedById: user.userId, reviewedAt: new Date() },
+    });
+
+    await this.audit.log({
+      userId: user.userId,
+      action: 'REVIEW_FINDING_REJECT',
+      entity: 'ReviewFinding',
+      entityId: findingId,
+    });
+
+    return updated;
   }
 }

@@ -16,12 +16,18 @@
       <a
         *ngFor="let item of visibleNavItems()"
         [routerLink]="item.path"
-        routerLinkActive="active"
+        [class.active]="isItemActive(item)"
         class="nav-item"
         (click)="closeMobileNav()"
       >
         <span class="nav-icon">{{ item.icon }}</span>
         <span class="nav-label">{{ item.label }}</span>
+        <span
+          class="nav-badge"
+          *ngIf="item.path === '/resenas/aprobaciones' && pendingApprovalsCount() > 0"
+        >
+          {{ pendingApprovalsCount() }}
+        </span>
       </a>
     </nav>
   </aside>
@@ -72,6 +78,16 @@
                 <div class="notif-title">{{ n.title }}</div>
                 <div class="notif-message">{{ n.message }}</div>
                 <div class="notif-time">{{ n.createdAt | date: 'short' }}</div>
+                <a
+                  *ngIf="n.whatsappPhone"
+                  class="btn btn-outline btn-sm notif-whatsapp"
+                  [href]="whatsappHref(n)"
+                  target="_blank"
+                  rel="noopener"
+                  (click)="$event.stopPropagation()"
+                >
+                  📲 Enviar por WhatsApp
+                </a>
               </li>
               <li *ngIf="notifications().length === 0" class="notif-empty">No tienes notificaciones.</li>
             </ul>

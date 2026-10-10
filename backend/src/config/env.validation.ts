@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsString, Max, Min, validateSync } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
@@ -33,6 +33,14 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   FRONTEND_URL: string;
+
+  // Opcional: sin esta clave, la clasificación automática de reseñas con IA
+  // (Fase B) simplemente no corre — la reseña queda guardada con aiError,
+  // pero el resto del sistema sigue funcionando con normalidad.
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ANTHROPIC_API_KEY?: string;
 }
 
 // Se ejecuta una sola vez al iniciar Nest (ConfigModule.forRoot({ validate })).

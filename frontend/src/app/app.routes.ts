@@ -72,6 +72,16 @@ export const routes: Routes = [
           ),
         canActivate: [permissionGuard('review:create')],
       },
+      // Debe ir ANTES de 'resenas/:id': si quedara después, Angular
+      // interpretaría "aprobaciones" como si fuera el :id de la reseña.
+      {
+        path: 'resenas/aprobaciones',
+        loadComponent: () =>
+          import('./features/reviews/pending-approvals/pending-approvals.component').then(
+            (m) => m.PendingApprovalsComponent,
+          ),
+        canActivate: [permissionGuard('review:classification-approve')],
+      },
       {
         path: 'resenas/:id',
         loadComponent: () =>

@@ -419,6 +419,10 @@ model Notification {
   channel   NotificationChannel @default(IN_APP)
   title     String
   message   String
+  // Teléfono (solo dígitos, con código de país) para el botón "Enviar por
+  // WhatsApp" vía wa.me. Null cuando no hay un contacto con teléfono para
+  // esta notificación en particular.
+  whatsappPhone String?
   readAt    DateTime?
   createdAt DateTime            @default(now())
 

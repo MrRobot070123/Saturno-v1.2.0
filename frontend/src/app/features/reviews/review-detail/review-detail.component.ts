@@ -50,7 +50,8 @@ import { AuthService } from '../../../core/services/auth.service';
 
           <ul class="findings-list" *ngIf="r.findings.length > 0">
             <li *ngFor="let f of r.findings">
-              <span class="finding-chip">{{ f.area?.name }} · {{ f.subtype?.name || f.suggestedName }}</span>
+              <span class="finding-chip">{{ f.area?.name || f.suggestedArea }} · {{ f.subtype?.name || f.suggestedName }}</span>
+              <span class="finding-status" [class]="'status-' + f.status.toLowerCase()">{{ statusLabel(f.status) }}</span>
               <em class="finding-excerpt">"{{ f.excerpt }}"</em>
             </li>
           </ul>
@@ -110,6 +111,12 @@ import { AuthService } from '../../../core/services/auth.service';
       border: 1px solid var(--color-border);
     }
     .finding-excerpt { color: var(--color-text-muted); font-size: 13px; }
+    .finding-status {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
+    }
+    .status-matched, .status-approved { background: color-mix(in srgb, #2e7d32 20%, transparent); color: #2e7d32; }
+    .status-pending_approval { background: color-mix(in srgb, #ed6c02 20%, transparent); color: #ed6c02; }
+    .status-rejected { background: color-mix(in srgb, #c62828 20%, transparent); color: #c62828; }
     .review-no-findings { color: var(--color-text-muted); font-size: 13px; font-style: italic; }
 
     .finding-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -193,5 +200,18 @@ export class ReviewDetailComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/resenas']);
+  }
+
+  statusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING_APPROVAL':
+        return 'Pendiente de aprobación';
+      case 'APPROVED':
+        return 'Aprobado';
+      case 'REJECTED':
+        return 'Rechazado';
+      default:
+        return 'Confirmado';
+    }
   }
 }

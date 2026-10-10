@@ -93,6 +93,18 @@
   font-weight: 700;
 }
 
+// Badge numérico junto al ítem "Aprobaciones" (hallazgos PENDING_APPROVAL).
+.nav-badge {
+  margin-left: auto;
+  background: var(--color-danger, #d9534f);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
 // Solo visible en móvil (ver @media). En escritorio no existe.
 .sidebar-backdrop {
   display: none;
@@ -210,6 +222,7 @@
   font-size: 12px;
   color: var(--color-text-muted);
   margin-top: 2px;
+  white-space: pre-line;
 }
 
 .notif-time {
@@ -223,6 +236,12 @@
   text-align: center;
   font-size: 13px;
   color: var(--color-text-muted);
+}
+
+.notif-whatsapp {
+  display: inline-flex;
+  margin-top: 8px;
+  font-size: 12px;
 }
 
 .content {

@@ -33,6 +33,7 @@ services:
       NODE_ENV: production
       FRONTEND_URL: http://localhost:8081
       DEFAULT_HOTEL_CODE: HTL-DEMO-01
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - '3000:3000'
       - '5555:5555'

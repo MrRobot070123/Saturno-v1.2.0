@@ -76,12 +76,12 @@ export interface CaseItem {
   createdBy: { id: string; fullName: string; email: string };
   closedBy: { id: string; fullName: string; email: string } | null;
 }
-
 export interface AppNotification {
   id: string;
   title: string;
   message: string;
   caseId: string | null;
+  whatsappPhone: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -162,4 +162,16 @@ export interface Review {
   createdBy: { id: string; fullName: string };
   createdAt: string;
   findings: ReviewFinding[];
+}
+
+// Fase B: hallazgo PENDING_APPROVAL con el contexto de su reseña, tal como
+// lo devuelve GET /reviews/findings/pending para la pantalla de aprobaciones.
+export interface PendingReviewFinding extends ReviewFinding {
+  review: {
+    id: string;
+    guestName: string;
+    stayDate: string;
+    platform: { id: string; name: string };
+    location: { id: string; name: string };
+  };
 }

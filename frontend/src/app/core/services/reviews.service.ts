@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Review } from '../models/domain.models';
+import { PendingReviewFinding, Review } from '../models/domain.models';
 
 export interface ReviewFilters {
   page?: number;
@@ -10,6 +10,7 @@ export interface ReviewFilters {
   search?: string;
   locationId?: string;
   platformId?: string;
+  areaId?: string;
   from?: string;
   to?: string;
 }
@@ -57,5 +58,22 @@ export class ReviewsService {
 
   addFinding(reviewId: string, subtypeId: string, excerpt: string): Observable<unknown> {
     return this.http.post(`${this.base}/reviews/${reviewId}/findings`, { subtypeId, excerpt });
+  }
+
+  // ---------- Fase B: aprobación de hallazgos propuestos por la IA ----------
+
+  findPendingFindings(): Observable<PendingReviewFinding[]> {
+    return this.http.get<PendingReviewFinding[]>(`${this.base}/reviews/findings/pending`);
+  }
+
+  approveFinding(
+    findingId: string,
+    payload: { subtypeId: string } | { areaId: string; name: string },
+  ): Observable<unknown> {
+    return this.http.patch(`${this.base}/reviews/findings/${findingId}/approve`, payload);
+  }
+
+  rejectFinding(findingId: string): Observable<unknown> {
+    return this.http.patch(`${this.base}/reviews/findings/${findingId}/reject`, {});
   }
 }

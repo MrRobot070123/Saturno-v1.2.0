@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../core/services/auth.service';
 import { NotificationBannerService } from '../core/services/notification-banner.service';
 import { NotificationsHttpService } from '../core/services/admin.services';
+import { ReviewsService } from '../core/services/reviews.service';
 import { ThemeService } from '../core/services/theme.service';
 import { IdleSessionService } from '../core/services/idle-session.service';
 import { AppFooterComponent } from '../shared/components/app-footer/app-footer.component';
@@ -32,6 +33,9 @@ export class LayoutComponent implements OnDestroy {
   notifPanelOpen = signal(false);
   notifications = signal<AppNotification[]>([]);
   notifLoading = signal(false);
+  // Fase B: contador de hallazgos de reseñas pendientes de aprobación,
+  // mostrado como badge junto al ítem "Aprobaciones" del menú.
+  pendingApprovalsCount = signal(0);
 
   navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -39,6 +43,12 @@ export class LayoutComponent implements OnDestroy {
     { label: 'Quejas', path: '/quejas', icon: '⚠️' },
     { label: 'Solicitudes', path: '/solicitudes', icon: '📝' },
     { label: 'Reseñas', path: '/resenas', icon: '⭐', permission: 'review:view' },
+    {
+      label: 'Aprobaciones',
+      path: '/resenas/aprobaciones',
+      icon: '✅',
+      permission: 'review:classification-approve',
+    },
     { label: 'Reportes', path: '/reportes', icon: '📈', permission: 'report:view' },
     { label: 'Usuarios', path: '/usuarios', icon: '👥', permission: 'user:manage' },
     { label: 'Configuración', path: '/configuracion', icon: '⚙️', permission: 'catalog:manage' },
@@ -50,11 +60,13 @@ export class LayoutComponent implements OnDestroy {
     public banner: NotificationBannerService,
     public theme: ThemeService,
     private notificationsHttp: NotificationsHttpService,
+    private reviewsService: ReviewsService,
     private idle: IdleSessionService,
     private router: Router,
     private elementRef: ElementRef<HTMLElement>,
   ) {
     this.refreshUnread();
+    this.refreshPendingApprovals();
     // LayoutComponent solo existe mientras hay una sesión iniciada (está
     // detrás de authGuard en app.routes.ts), así que este es el lugar
     // correcto para arrancar el temporizador de cierre por inactividad.
@@ -102,6 +114,21 @@ export class LayoutComponent implements OnDestroy {
     return this.navItems.filter((item) => !item.permission || this.auth.hasPermission(item.permission));
   }
 
+  // routerLinkActive marca un ítem como activo si la URL actual EMPIEZA con
+  // su ruta, así que '/resenas' (Reseñas) también se resaltaba estando en
+  // '/resenas/aprobaciones' (Aprobaciones), porque una es prefijo de la otra.
+  // Aquí se elige el ítem con la ruta más específica que calce con la URL
+  // actual, y solo ese se resalta.
+  isItemActive(item: NavItem): boolean {
+    const url = this.router.url.split('?')[0].split('#')[0];
+    const matches = (path: string) => url === path || url.startsWith(path + '/');
+    if (!matches(item.path)) return false;
+    const moreSpecificMatch = this.navItems.some(
+      (other) => other.path !== item.path && other.path.length > item.path.length && matches(other.path),
+    );
+    return !moreSpecificMatch;
+  }
+
   // En móvil abre/cierra el drawer; en escritorio colapsa/expande el menú.
   toggleSidebar(): void {
     if (this.isMobile()) {
@@ -122,8 +149,22 @@ export class LayoutComponent implements OnDestroy {
     });
   }
 
-  // La campanita antes solo mostraba el contador, sin forma de ver el
-  // contenido. Ahora abre/cierra un panel con la lista real.
+  // Solo se consulta si el usuario tiene el permiso: evita una llamada (y un
+  // 403 esperado) para roles que nunca van a ver ese ítem del menú.
+  refreshPendingApprovals(): void {
+    if (!this.auth.hasPermission('review:classification-approve')) return;
+    this.reviewsService.findPendingFindings().subscribe({
+      next: (items) => this.pendingApprovalsCount.set(items.length),
+      error: () => this.pendingApprovalsCount.set(0),
+    });
+  }
+
+  // El contador de "no leídas" se recalcula aquí mismo a partir de la lista
+  // recién traída (en vez de confiar en el valor cargado al inicio de la
+  // sesión): no hay WebSocket que avise de notificaciones nuevas (son
+  // polling/consulta, ver README → Roadmap), así que sin esto el badge se
+  // quedaba desactualizado si se generaba una notificación nueva (p. ej. al
+  // asignar un caso) mientras la campanita no se volvía a abrir.
   toggleNotifPanel(): void {
     const opening = !this.notifPanelOpen();
     this.notifPanelOpen.set(opening);
@@ -132,6 +173,7 @@ export class LayoutComponent implements OnDestroy {
       this.notificationsHttp.list(false).subscribe({
         next: (items) => {
           this.notifications.set(items);
+          this.unreadCount.set(items.filter((n) => !n.readAt).length);
           this.notifLoading.set(false);
         },
         error: () => this.notifLoading.set(false),
@@ -147,6 +189,12 @@ export class LayoutComponent implements OnDestroy {
     if (n.caseId) {
       this.router.navigate(['/casos', n.caseId]);
     }
+  }
+
+  // Arma el enlace wa.me a partir del teléfono y el texto de la notificación
+  // (vía gratuita, sin API de pago: ver diseno-modulo-resenas-v2.1.0.md §4B).
+  whatsappHref(n: AppNotification): string {
+    return `https://wa.me/${n.whatsappPhone}?text=${encodeURIComponent(n.message)}`;
   }
 
   markAllNotificationsRead(): void {

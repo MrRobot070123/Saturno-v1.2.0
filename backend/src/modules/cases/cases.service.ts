@@ -256,8 +256,8 @@ export class CasesService {
           newValues: { areaId: dto.areaId, responsibleId: dto.responsibleId },
         },
       });
-
-      await this.notifications.notifyResponsibleAssigned(tx, updated);
+      
+      await this.notifications.notifyResponsibleAssigned(tx, updated, user.userId);
 
       return updated;
     });
